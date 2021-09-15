@@ -15,14 +15,14 @@ output:
     df_print: paged
 ---
 
-
-```{r, setup, echo=FALSE}
+```{r , echo=FALSE}
 knitr::opts_chunk$set(
   message = FALSE, 
   warning = FALSE, 
   tidy=FALSE,     # display code as typed
   size="small")   # slightly smaller font for code
 options(digits = 3)
+
 
 # default figure size
 knitr::opts_chunk$set(
@@ -32,7 +32,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r, initialise-libraries, echo=FALSE}
+```{r initialise-libraries, echo=FALSE}
+
 library(googlesheets4)
 library(tidyverse)
 library(janitor) 
@@ -41,13 +42,16 @@ library(countrycode) # to clean up country names
 library(broom)
 library(car)
 library(ggfortify)
+library(lubridate)
+library(labourR)
+library(magrittr)
 ```
 
 
 
 # Data Import
 
-```{r, import-ask-manager}
+```{r import-ask-manager}
 
 # Google Sheets permissions did not work with my google account
 
@@ -64,5 +68,68 @@ library(ggfortify)
 ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
   janitor::clean_names()
   
+```
+
+# Intitial Data Exploration and Cleaning
+
+```{r data-explore}
+
+skimr::skim(ask_a_manager_2021)
+
+head(ask_a_manager_2021)
+```
+
+### Clean Country Names
+
+```{r country-code-cleaning}
+
+# unique(ask_a_manager_2021$country) # checking the list of unique country codes reveals that country names are inconsistent across the data
+
+ask_a_manager_2021 <- ask_a_manager_2021%>%
+  mutate(
+    country = countrycode::countrycode(sourcevar = ask_a_manager_2021$country, 
+                                       origin = 'country.name', 
+                                       destination = 'country.name', 
+                                       warn = TRUE, 
+                                       nomatch = NULL)
+    )
+```
+
+### Clasify Jobs and Industries
+
+```{r check-after-cleaning}
+# skimr::skim(ask_a_manager_2021)
+
+# unique(ask_a_manager_2021$industry)
+
+ask_a_manager_2021 <- ask_a_manager_2021%>%
+  mutate(job_ind = paste(job_title, industry, sep = " "))
+
+occupation_classification <- labourR::classify_occupation(corpus = ask_a_manager_2021, 
+                                         isco_level = 2, 
+                                         lang = "en",
+                                         num_leaves = 10,
+                                         text_col = "job_ind",
+                                         id = "timestamp")%>%
+  mutate(timestamp = ymd_hms(timestamp))
+  
+
+ 
+ask_a_manager_2021 <- left_join(ask_a_manager_2021,
+          occupation_classification,
+          by = "timestamp")%>%
+  clean_names()
+
+```
+
+```{r}
+
+
+```
+
+
+```{r}
+
+
 ```
 
