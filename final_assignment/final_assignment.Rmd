@@ -72,6 +72,8 @@ ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
 
 # Intitial Data Exploration and Cleaning
 
+Hiii 
+
 ```{r data-explore}
 
 skimr::skim(ask_a_manager_2021)
