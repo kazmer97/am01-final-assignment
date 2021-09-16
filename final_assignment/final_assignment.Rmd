@@ -16,6 +16,7 @@ output:
 ---
 
 ```{r , echo=FALSE}
+#hi
 knitr::opts_chunk$set(
   message = FALSE, 
   warning = FALSE, 
