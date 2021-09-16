@@ -18,6 +18,7 @@ output:
 ```{r , echo=FALSE}
 #hi
 #hi2
+#hi3
 
 knitr::opts_chunk$set(
   message = FALSE, 
