@@ -47,6 +47,11 @@ library(ggfortify)
 library(lubridate)
 library(labourR)
 library(magrittr)
+library(gapminder)
+
+library(stringr)
+library(stringdist)
+library(hash)
 ```
 
 
@@ -80,7 +85,7 @@ Hiii
 
 skimr::skim(ask_a_manager_2021)
 
-head(ask_a_manager_2021)
+# head(ask_a_manager_2021)
 ```
 
 ### Clean Country Names
@@ -97,6 +102,181 @@ ask_a_manager_2021 <- ask_a_manager_2021%>%
                                        warn = TRUE, 
                                        nomatch = NULL)
     )
+
+ask_a_manager_2021 <- ask_a_manager_2021%>%
+  mutate(
+    country = countrycode::countrycode(sourcevar = ask_a_manager_2021$country, 
+                                       origin = 'unicode.symbol', 
+                                       destination = 'country.name', 
+                                       warn = TRUE, 
+                                       nomatch = NULL)
+    )
+
+
+country_list <- unique(countryname_dict$country.name.en)
+
+typos <- ask_a_manager_2021%>%
+  filter(!country %in% unique(countryname_dict$country.name.en))
+  
+unique(typos$country)
+
+typo_map <- hash()
+
+
+typo_map[["United Kingdom"]] <- list("Scotland",
+                                     "England",
+                                     "Northern Ireland",
+                                     "England/UK",
+                                     "England, UK",
+                                     "United Kindom",
+                                     "UK (Northern Ireland)",                                                                                              "UK for U.S. company",
+                                     "England, Gb",
+                                     "Englang",
+                                     "England, Gb",
+                                     "U.K. (northern England)",
+                                     "Unites kingdo",
+                                     "Unites kingdom",
+                                     "UK (England)",
+                                     "england",
+                                     "Jersey", 
+                                     "Channel islands",
+                                     "UK, remote",
+                                     "Scotland, UK",
+                                     "England, UK.",
+                                     "Jersey, Channel islands",
+                                     "Wales, UK",
+                                     "Wales (UK)",
+                                     "UK, but for globally fully remote company",
+                                     "Wales"
+                                     )
+typo_map[["United States"]] <- list("United State",
+  "ISA",
+ "America",
+"United State of America",
+"United Stated",
+"USA-- Virgin Islands",
+"United Statws" ,
+"Unites States" ,
+"U. S.",
+"United Sates",
+"Uniited States",
+"Worldwide (based in US but short term trips aroudn the world)",
+"United Sates of America",
+"United States (I work from home and my clients are all over the US/Canada/PR",
+"Unted States",
+"United Statesp",
+"United Stattes",
+"United Statea",
+"United Statees",
+"Uniyed states",
+"Uniyes States",
+"United Status",
+"Uniteed States",
+"United Stares",
+"Unites states",
+"Unite States",
+"The US",
+"United statew",
+"United Statues",
+"Untied States",
+"Unitied States",
+"United Sttes",
+"united stated",
+"Uniter Statez",
+"U. S" ,
+"United Stateds",
+"Usat",
+"Unitef Stated",
+"USaa",
+"america",
+"United States- Puerto Rico",
+"California",
+"Virginia",
+"Hartford",
+"San Francisco",
+"USD",
+"United Statss",
+"I work for a UAE-based organization, though I am personally in the US.",
+"United  States",
+"U.A.",
+"UXZ",
+"USS",
+"IS",
+"USAB",
+"UA",
+"I.S",
+"I.S.",
+"United y"
+)
+
+typo_map[["Canada"]] <- list(
+  "Canadw",
+"Can",
+"Canda",
+"Canada and USA",
+"Csnada",
+"Canad"
+)
+
+typo_map[["NA"]] <- list(
+  "Contracts",
+"We don't get raises, we get quarterly bonuses, but they periodically asses income in the area you work, so I got a raise because a 3rd party assessment showed I was paid too little for the area we were located",
+"Global" ,
+"Currently finance",
+"UXZ",
+"$2,175.84/year is deducted for benefits",
+"Remote",
+"bonus based on meeting yearly goals set w/ my supervisor",
+"I earn commission on sales. If I meet quota, I'm guaranteed another 16k min. Last year i earned an additional 27k. It's not uncommon for people in my space to earn 100k+ after commission.",
+"I was brought in on this salary to help with the EHR and very quickly was promoted to current position but compensation was not altered.",
+"n/a (remote from wherever I want)",
+"Africa",
+"europe",
+"na",
+"Policy",
+"NA",
+"International",
+"NZ",
+"Y"
+)
+
+typo_map[["Spain"]] <- list("Catalonia")
+
+typo_map[["Australia"]] <- list("Australi")
+
+typo_map[["Denmark"]] <- list("Danmark")
+
+typo_map[["Netherlands"]] <- list("NL",
+"Nederland")
+
+typo_map[["Panama"]] <- list("Panamá")
+
+typo_map[["Brazil"]] <- list("Brasil")
+
+typo_map[["Argentina"]] <- list("ARGENTINA BUT MY ORG IS IN THAILAND")
+
+typo_map[["Mexico"]] <- list("México")
+
+keys(typo_map)[2]
+
+as.list(values(typo_map, keys = c))[1]
+
+for (c in keys(typo_map))
+{
+  ask_a_manager_2021 <- ask_a_manager_2021%>%
+  mutate(country = case_when(country %in% values(typo_map, keys = c) ~c,
+                              !country %in% values(typo_map, keys = c) ~ country))
+}
+
+```
+
+
+```{r}
+typos <- ask_a_manager_2021%>%
+  filter(!country %in% unique(countryname_dict$country.name.en))
+unique(typos$country)
+
+unique(ask_a_manager_2021$country)
 ```
 
 ### Clasify Jobs and Industries
