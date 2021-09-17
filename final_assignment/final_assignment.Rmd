@@ -308,9 +308,13 @@ ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%
 
 ```
 
-# Analyses of Race within the Dataset
+# Analyses by Race 
+
+## Multiple Races
 
 By looking at the data it can be seen the quite a few respondents have filled out multiple options. Let s visualise how many exactly.
+
+### Number of responses with each number of Races
 
 ```{r race-multiple-resp}
 
@@ -341,36 +345,21 @@ ggplot(n_race_responses,
             stat = "count",  
             vjust = -0.4)
 
-
-
-
-  # geom_errorbarh(aes(xmin = n_race - 0.5, 
-  #                    xmax = 6.5, 
-  #                    y = n,color = n_race), 
-  #                hjust = -2
-  #                )
-  # # geom_text(aes(label = sprintf("%.2f%% of respondants", 100*prct)),
-  # #           hjust = +0.3, vjust = -0.5)
-  # # xlim(0, 7)
-  
-  
-  
-
 ```
 
 ```{r}
 
-n_race_sumary %>%
+n_race_sumary <- n_race_sumary %>%
   mutate(prct = round(prct*100, 2),
-         n = formatC(n, format = "f", big.mark = ",", digits = 0))%>%
-  kbl(caption = "Respondants and Number of Races they identify with",
-    col.names = c("Number of Races Respondant Identifies with",
+         n = formatC(n, format = "f", big.mark = ",", digits = 0))
+colnames(n_race_sumary) <- c("Number of Races Respondant Identifies with",
              "Number of Respondants",
-            "% of Of total respodants"),
+            "% of Of total respodants")
+n_race_sumary
     
-    )%>%
-  kable_styling()
 ```
+### Multiple Race by Gender and Age
+
 Distribution of men and women who identify as more than one Race
 
 ```{r race-gender-age}
@@ -401,28 +390,131 @@ If we analyse the respondents that selected more then 1 race that they identify 
 H0 = Millennial women are  equally likely to identify with multiple races as millennial men.
 H1 = Millennial women are not equally likely to identify with multiple races as millennial men.
 
-```{r}
+```{r millenial-race-test}
 
 n_race_responses <- n_race_responses%>%
   mutate(multiple_race = case_when(n_race > 1 ~ 1,
                                    n_race == 1 ~0))
 
 mill_men <- subset(n_race_responses, 
-                   (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Men",
+                   (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Man",
                    select = c(multiple_race))
 
 mill_men
 
-t.test()
+mill_women <- subset(n_race_responses, 
+                   (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Woman",
+                   select = c(multiple_race))
+
+mill_women
+
+t.test(mill_men, mill_women)
 
 ```
 
+H0 cannot be rejected as the t-value is less then 2. Which means the difference seen in tendency to identify with multiple races between genders is due to the unequal sample sizes.
 
+Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
+
+H0 = The proportion of millennials identifying with multiple races is the same as the proportion of other age groups that identify with multiple races. 
+
+H1 = The proportion of millennials identifying with multiple races is not the same as the proportion of other age groups that identify with multiple races. 
+```{r multiple-race-age}
+
+millennial <- subset(n_race_responses, 
+                   (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44"),
+                   select = c(multiple_race))
+
+non_millenial <- subset(n_race_responses, 
+                   (n_race_responses$how_old_are_you != "25-34" & n_race_responses$how_old_are_you != "35-44"),
+                   select = c(multiple_race))
+
+t.test(millennial, non_millenial)
+
+
+
+```
+The H0 hypothesis can be rejected as t value is above 2. Which means that it can be said with 95% confidence that there is a difference between the proportion of millennials that identify with multiple races and all other age groups. 
+
+
+### Multiple Race by Country
+
+```{r multiple-race-country}
+m_race_country_summary <- n_race_responses%>%
+  mutate(gender = factor(gender,
+         levels = c("Man","Woman","Non-binary","Other or prefer not to answer", "NA")))%>%
+  filter(!is.na(country))%>%
+  group_by(country)%>%
+  summarise(multiple_race, pop = n())%>%
+  ungroup()%>%
+  group_by(country, multiple_race)%>%
+  summarise(pop, 
+            mult_race_num = n())%>%
+  filter(multiple_race ==1)%>%
+  mutate(prop_resp  = multiple_race/pop)%>% # get the percentage of respondants that identify with multiple races
+  group_by(country)%>%
+  summarise(pop = max(pop),
+            mult_race_num = max(mult_race_num), 
+            prop_resp = round(max(prop_resp)*100, 5))%>%
+  arrange(desc(prop_resp))
+
+colnames(m_race_country_summary) <- c("Country","Num. Responses", "Num. Responses with Num. Race >1","% of response with num_race > 1")
+
+m_race_country_summary
+```
+
+
+Some Countries have a very small representation within the dataset and the respondents from there have filled out multiple races. These countries will be excluded from the race statistics going forward where only entries with a single race will be used as the multi race selections are a relatively low proportion of the respondents. 
+
+
+## Single Race Responses
+
+
+```{r single-race}
+single_race_data <- n_race_responses%>%
+  filter(multiple_race == 0) # only use responses that only put down one race
+
+
+# remove countries with less then 10 respondants
+
+single_race_data <-single_race_data%>%
+  group_by(country)%>%
+  mutate(num_resp = n())%>%
+  ungroup()
+
+```
+
+### Race distribution from countries with more then 50 responses
+
+```{r race-distribution}
+
+country_race <- single_race_data%>%
+  filter(num_resp > 50, !is.na(race))%>%
+  rowwise()%>%
+  mutate(race = as.character(race[1]))%>%
+  group_by(country, race)%>%
+  summarise(num_resp, race_count = n())%>%
+  mutate(race_prc = race_count/num_resp)%>%
+  summarise(num_resp = max(num_resp),
+            race_count = max(race_count),
+            race_prc = max(race_prc))%>%
+  mutate(race_prc = round(race_prc*100,2))
+
+ggplot(country_race,aes(x = reorder(race, -race_prc), y = race_prc))+
+  geom_col( aes(fill = race))+
+  facet_wrap(~country)+
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank())+
+  labs(title = "Population Distribution in Countries with more then 50 respondants",
+       y = "% of Respondants",
+       fill  = "Race Classification")
+```
+### Race by Industry
 
 ```{r}
 
-model1 <- lm(n_race ~ gender+how_old_are_you,
-             data = n_race_responses)
 
-summary(model1)
+
 ```
+
