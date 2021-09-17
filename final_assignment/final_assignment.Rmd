@@ -308,6 +308,9 @@ ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%
 
 ```
 
+
+
+
 # Analyses by Race 
 
 ## Multiple Races
@@ -500,21 +503,32 @@ country_race <- single_race_data%>%
             race_prc = max(race_prc))%>%
   mutate(race_prc = round(race_prc*100,2))
 
-ggplot(country_race,aes(x = reorder(race, -race_prc), y = race_prc))+
+ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
   geom_col( aes(fill = race))+
   facet_wrap(~country)+
-  theme(axis.ticks.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank())+
+  theme(axis.title.y = element_blank())+
   labs(title = "Population Distribution in Countries with more then 50 respondants",
-       y = "% of Respondants",
+       x = "% of Respondents",
        fill  = "Race Classification")
 ```
 ### Race by Industry
 
 ```{r}
 
+industry_race <- single_race_data%>%
+  filter(!is.na(industry), num_resp > 50)%>%
+  group_by(industry, race)%>%
+  summarise(num_resp, 
+            race_count = n())%>%
+  mutate(race_prc = race_count/num_resp)%>%
+  summarise(num_resp = max(num_resp),
+            race_count = max(race_count),
+            race_prc = max(race_prc))%>%
+  mutate(race_prc = round(race_prc*100,2))
 
+ggplot(industry_race, aes(x = industry,fill = race))+
+  geom_bar(position = "fill")+
+  facet_wrap(~country)
 
 ```
 
