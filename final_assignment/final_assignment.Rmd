@@ -52,6 +52,8 @@ library(quantmod)
 library(stringr)
 library(stringdist)
 library(hash)
+library(scales)
+library(gt)
 ```
 
 
@@ -306,3 +308,121 @@ ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%
 
 ```
 
+# Analyses of Race within the Dataset
+
+By looking at the data it can be seen the quite a few respondents have filled out multiple options. Let s visualise how many exactly.
+
+```{r race-multiple-resp}
+
+
+n_race_responses <- ask_a_manager_2021_cleaned%>%
+  mutate(race = str_split(race,pattern = ","))%>%
+  rowwise()%>%
+  mutate(n_race = length(race))
+
+n_race_sumary <- n_race_responses%>%
+  group_by(n_race)%>%
+  summarise(n = n())%>%
+  mutate(prct = n/sum(n))
+
+n_race_responses <- left_join(n_race_responses, n_race_sumary, by = "n_race")
+
+
+ggplot(n_race_responses, 
+       aes(n_race))+
+  geom_bar(alpha = 0.8)+
+  scale_y_log10()+
+  theme_bw()+
+  labs(title = "Number of Races survey respondents Identified with",
+       x = "Number of Races",
+       y = "Count (y axis scaled to log10)")+
+  scale_x_continuous(breaks = pretty_breaks(6))+
+  geom_text(aes(label = formatC(..count.., format = "f", big.mark = ",", digits = 0)), 
+            stat = "count",  
+            vjust = -0.4)
+
+
+
+
+  # geom_errorbarh(aes(xmin = n_race - 0.5, 
+  #                    xmax = 6.5, 
+  #                    y = n,color = n_race), 
+  #                hjust = -2
+  #                )
+  # # geom_text(aes(label = sprintf("%.2f%% of respondants", 100*prct)),
+  # #           hjust = +0.3, vjust = -0.5)
+  # # xlim(0, 7)
+  
+  
+  
+
+```
+
+```{r}
+
+n_race_sumary %>%
+  mutate(prct = round(prct*100, 2),
+         n = formatC(n, format = "f", big.mark = ",", digits = 0))%>%
+  kbl(caption = "Respondants and Number of Races they identify with",
+    col.names = c("Number of Races Respondant Identifies with",
+             "Number of Respondants",
+            "% of Of total respodants"),
+    
+    )%>%
+  kable_styling()
+```
+Distribution of men and women who identify as more than one Race
+
+```{r race-gender-age}
+
+m_race_gender_summary <- n_race_responses%>%
+  mutate(gender = factor(gender,
+         levels = c("Man","Woman","Non-binary","Other or prefer not to answer", "NA")))%>%
+  filter(n_race > 1, !is.na(gender))%>%
+  group_by(gender, n_race, how_old_are_you)%>%
+  summarise(number = n())%>%
+  mutate(prct = number/sum(number))
+
+ggplot(m_race_gender_summary, aes(y = number, x = reorder(n_race, number)))+
+  geom_col()+
+  facet_grid(gender~how_old_are_you)+
+  coord_flip()+
+  theme_bw()+
+  labs(
+    title = "Number of Race's a person identifies with by Age and Gender",
+    y = "Number of Race options ticked by Respondant",
+    x = "Number of Respondants"
+  )
+
+```
+
+If we analyse the respondents that selected more then 1 race that they identify with we can see from the graph that the most prominent age groups are 25-34 and and 35-44 which would mean that Millenials are the most likely identify with multiple race's. And within the Millennial group it seems like women are more likely to do that then men. This shall be evaluated by a hypothesis testing. 
+
+H0 = Millennial women are  equally likely to identify with multiple races as millennial men.
+H1 = Millennial women are not equally likely to identify with multiple races as millennial men.
+
+```{r}
+
+n_race_responses <- n_race_responses%>%
+  mutate(multiple_race = case_when(n_race > 1 ~ 1,
+                                   n_race == 1 ~0))
+
+mill_men <- subset(n_race_responses, 
+                   (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Men",
+                   select = c(multiple_race))
+
+mill_men
+
+t.test()
+
+```
+
+
+
+```{r}
+
+model1 <- lm(n_race ~ gender+how_old_are_you,
+             data = n_race_responses)
+
+summary(model1)
+```
