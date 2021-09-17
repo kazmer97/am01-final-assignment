@@ -1,5 +1,3 @@
-# AM01
+# Study Group 11 Final Assignment
 
-All course files (data, code, etc.) used in AM01, September 2021
-
-**usethis::use_course(url, destdir = getOption("usethis.destdir"))** will allow you to download and unpack a ZIP file into a local folder of files, and open up the associated *.RProj* file, so you work inside an RStudio Project. 
+This repo is for the final assignment. The reason for it containing the the am01 repo is to make it easier to rely on materials used within the course. 
