@@ -47,6 +47,11 @@ library(ggfortify)
 library(lubridate)
 library(labourR)
 library(magrittr)
+library(gapminder)
+library(quantmod)
+library(stringr)
+library(stringdist)
+library(hash)
 ```
 
 
@@ -57,39 +62,36 @@ library(magrittr)
 
 # Google Sheets permissions did not work with my google account
 
-# # use googlesheets4 to get data
-# url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
-# googlesheets4::gs4_auth() # google sheets authorisation
-# 
-# # load "Ask a A Manager 2021 Survey" googlesheet
-# # https://www.askamanager.org/
-# ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>% 
-#   janitor::clean_names()
+# use googlesheets4 to get data
+url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
+googlesheets4::gs4_auth() # google sheets authorisation
+
+# load "Ask a A Manager 2021 Survey" googlesheet
+# https://www.askamanager.org/
+ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
+  janitor::clean_names()
 
 # if googlesheets is now working, read local copy
-ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-  janitor::clean_names()
+# ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
+  # janitor::clean_names()
   
 ```
 
 # Intitial Data Exploration and Cleaning
 
-Hiii 
-
 ```{r data-explore}
 
 skimr::skim(ask_a_manager_2021)
-
-head(ask_a_manager_2021)
 ```
 
-### Clean Country Names
+
+## Clean Country Names
 
 ```{r country-code-cleaning}
 
 # unique(ask_a_manager_2021$country) # checking the list of unique country codes reveals that country names are inconsistent across the data
 
-ask_a_manager_2021 <- ask_a_manager_2021%>%
+ask_a_manager_2021_cleaned <- ask_a_manager_2021%>%
   mutate(
     country = countrycode::countrycode(sourcevar = ask_a_manager_2021$country, 
                                        origin = 'country.name', 
@@ -97,43 +99,210 @@ ask_a_manager_2021 <- ask_a_manager_2021%>%
                                        warn = TRUE, 
                                        nomatch = NULL)
     )
+
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(
+    country = countrycode::countrycode(sourcevar = ask_a_manager_2021_cleaned$country, 
+                                       origin = 'unicode.symbol', 
+                                       destination = 'country.name', 
+                                       warn = TRUE, 
+                                       nomatch = NULL)
+    )
+
+
+
+country_list <- unique(countryname_dict$country.name.en)
+
+typos <- ask_a_manager_2021_cleaned%>%
+  filter(!country %in% unique(countryname_dict$country.name.en))
+  
+unique(typos$country) #identifying the the typos and mismatches that the country code library couldn't deal with
+
+typo_map <- hash() #create a map for the correct version of the typos
+
+
+typo_map[["United Kingdom"]] <- list("Scotland",
+                                     "England",
+                                     "Northern Ireland",
+                                     "England/UK",
+                                     "England, UK",
+                                     "United Kindom",
+                                     "UK (Northern Ireland)",                                                                                              "UK for U.S. company",
+                                     "England, Gb",
+                                     "Englang",
+                                     "England, Gb",
+                                     "U.K. (northern England)",
+                                     "Unites kingdo",
+                                     "Unites kingdom",
+                                     "UK (England)",
+                                     "england",
+                                     "Jersey", 
+                                     "Channel islands",
+                                     "UK, remote",
+                                     "Scotland, UK",
+                                     "England, UK.",
+                                     "Jersey, Channel islands",
+                                     "Wales, UK",
+                                     "Wales (UK)",
+                                     "UK, but for globally fully remote company",
+                                     "Wales"
+                                     )
+typo_map[["United States"]] <- list("United State",
+  "ISA",
+ "America",
+"United State of America",
+"United Stated",
+"USA-- Virgin Islands",
+"United Statws" ,
+"Unites States" ,
+"U. S.",
+"United Sates",
+"Uniited States",
+"Worldwide (based in US but short term trips aroudn the world)",
+"United Sates of America",
+"United States (I work from home and my clients are all over the US/Canada/PR",
+"Unted States",
+"United Statesp",
+"United Stattes",
+"United Statea",
+"United Statees",
+"Uniyed states",
+"Uniyes States",
+"United Status",
+"Uniteed States",
+"United Stares",
+"Unites states",
+"Unite States",
+"The US",
+"United statew",
+"United Statues",
+"Untied States",
+"Unitied States",
+"United Sttes",
+"united stated",
+"Uniter Statez",
+"U. S" ,
+"United Stateds",
+"Usat",
+"Unitef Stated",
+"USaa",
+"america",
+"United States- Puerto Rico",
+"California",
+"Virginia",
+"Hartford",
+"San Francisco",
+"USD",
+"United Statss",
+"I work for a UAE-based organization, though I am personally in the US.",
+"United  States",
+"U.A.",
+"UXZ",
+"USS",
+"IS",
+"USAB",
+"UA",
+"I.S",
+"I.S.",
+"United y"
+)
+
+typo_map[["Canada"]] <- list(
+  "Canadw",
+"Can",
+"Canda",
+"Canada and USA",
+"Csnada",
+"Canad"
+)
+
+typo_map[["NA"]] <- list(
+  "Contracts",
+"We don't get raises, we get quarterly bonuses, but they periodically asses income in the area you work, so I got a raise because a 3rd party assessment showed I was paid too little for the area we were located",
+"Global" ,
+"Currently finance",
+"UXZ",
+"$2,175.84/year is deducted for benefits",
+"Remote",
+"bonus based on meeting yearly goals set w/ my supervisor",
+"I earn commission on sales. If I meet quota, I'm guaranteed another 16k min. Last year i earned an additional 27k. It's not uncommon for people in my space to earn 100k+ after commission.",
+"I was brought in on this salary to help with the EHR and very quickly was promoted to current position but compensation was not altered.",
+"n/a (remote from wherever I want)",
+"Africa",
+"europe",
+"na",
+"Policy",
+"NA",
+"International",
+"NZ",
+"Y"
+)
+
+typo_map[["Spain"]] <- list("Catalonia")
+
+typo_map[["Australia"]] <- list("Australi")
+
+typo_map[["Denmark"]] <- list("Danmark")
+
+typo_map[["Netherlands"]] <- list("NL",
+"Nederland")
+
+typo_map[["Panama"]] <- list("Panamá")
+
+typo_map[["Brazil"]] <- list("Brasil")
+
+typo_map[["Argentina"]] <- list("ARGENTINA BUT MY ORG IS IN THAILAND")
+
+typo_map[["Mexico"]] <- list("México")
+
+for (c in keys(typo_map))
+{
+  ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(country = case_when(country %in% values(typo_map, keys = c) ~c,
+                              !country %in% values(typo_map, keys = c) ~ country))
+}
+
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(country_code = countrycode::countrycode(sourcevar =  ask_a_manager_2021_cleaned$country,
+                                                 origin = 'country.name',
+                                                 destination = 'iso3c',
+                                                 nomatch = NA,
+                                                 warn = TRUE))
+
 ```
 
-### Clasify Jobs and Industries
 
-```{r check-after-cleaning}
-# skimr::skim(ask_a_manager_2021)
+```{r}
+typos <- ask_a_manager_2021_cleaned%>%
+  filter(!country %in% unique(countryname_dict$country.name.en))
+unique(typos$country)
 
-# unique(ask_a_manager_2021$industry)
+unique(ask_a_manager_2021_cleaned$country)
+```
 
-ask_a_manager_2021 <- ask_a_manager_2021%>%
-  mutate(job_ind = paste(job_title, industry, sep = " "))
+## Currency 
 
-occupation_classification <- labourR::classify_occupation(corpus = ask_a_manager_2021, 
-                                         isco_level = 2, 
-                                         lang = "en",
-                                         num_leaves = 10,
-                                         text_col = "job_ind",
-                                         id = "timestamp")%>%
-  mutate(timestamp = ymd_hms(timestamp))
+```{r }
+
+ask_a_manager_2021_cleaned$currency <- substr(ask_a_manager_2021_cleaned$currency, 0, 3)
+
+from <- ask_a_manager_2021_cleaned$currency
+to <- c("USD")
+exchange_rate <- getQuote(paste0(from, to, "=X"))
   
+exchange_rate <- exchange_rate[-c(8),] 
 
- 
-ask_a_manager_2021 <- left_join(ask_a_manager_2021,
-          occupation_classification,
-          by = "timestamp")%>%
+exchange_rate <- exchange_rate %>% 
+  mutate(currency = c("USD", "GBP", "CAD", "EUR", "AUD", "CHF", "ZAR", "SEK", "HKD", "JPY")) %>% 
+  select(currency, Last)%>%
   clean_names()
 
-```
+ask_a_manager_2021_cleaned <-
+  merge(ask_a_manager_2021_cleaned, exchange_rate, by="currency", all.x = T)
 
-```{r}
-
-
-```
-
-
-```{r}
-
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%  
+  mutate(salary_USD = annual_salary * Last)%>%
+  clean_names()
 
 ```
 
