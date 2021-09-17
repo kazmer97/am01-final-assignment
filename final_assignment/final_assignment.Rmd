@@ -294,13 +294,15 @@ exchange_rate <- exchange_rate[-c(8),]
 
 exchange_rate <- exchange_rate %>% 
   mutate(currency = c("USD", "GBP", "CAD", "EUR", "AUD", "CHF", "ZAR", "SEK", "HKD", "JPY")) %>% 
-  select(currency, Last)
+  select(currency, Last)%>%
+  clean_names()
 
 ask_a_manager_2021_cleaned <-
   merge(ask_a_manager_2021_cleaned, exchange_rate, by="currency", all.x = T)
 
 ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%  
-  mutate(salary_USD = annual_salary * Last)
+  mutate(salary_USD = annual_salary * Last)%>%
+  clean_names()
 
 ```
 
