@@ -48,7 +48,7 @@ library(lubridate)
 library(labourR)
 library(magrittr)
 library(gapminder)
-
+library(quantmod)
 library(stringr)
 library(stringdist)
 library(hash)
@@ -62,39 +62,36 @@ library(hash)
 
 # Google Sheets permissions did not work with my google account
 
-# # use googlesheets4 to get data
-# url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
-# googlesheets4::gs4_auth() # google sheets authorisation
-# 
-# # load "Ask a A Manager 2021 Survey" googlesheet
-# # https://www.askamanager.org/
-# ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>% 
-#   janitor::clean_names()
+# use googlesheets4 to get data
+url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
+googlesheets4::gs4_auth() # google sheets authorisation
+
+# load "Ask a A Manager 2021 Survey" googlesheet
+# https://www.askamanager.org/
+ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
+  janitor::clean_names()
 
 # if googlesheets is now working, read local copy
-ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-  janitor::clean_names()
+# ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
+  # janitor::clean_names()
   
 ```
 
 # Intitial Data Exploration and Cleaning
 
-Hiii 
-
 ```{r data-explore}
 
 skimr::skim(ask_a_manager_2021)
-
-# head(ask_a_manager_2021)
 ```
 
-### Clean Country Names
+
+## Clean Country Names
 
 ```{r country-code-cleaning}
 
 # unique(ask_a_manager_2021$country) # checking the list of unique country codes reveals that country names are inconsistent across the data
 
-ask_a_manager_2021 <- ask_a_manager_2021%>%
+ask_a_manager_2021_cleaned <- ask_a_manager_2021%>%
   mutate(
     country = countrycode::countrycode(sourcevar = ask_a_manager_2021$country, 
                                        origin = 'country.name', 
@@ -103,9 +100,9 @@ ask_a_manager_2021 <- ask_a_manager_2021%>%
                                        nomatch = NULL)
     )
 
-ask_a_manager_2021 <- ask_a_manager_2021%>%
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
   mutate(
-    country = countrycode::countrycode(sourcevar = ask_a_manager_2021$country, 
+    country = countrycode::countrycode(sourcevar = ask_a_manager_2021_cleaned$country, 
                                        origin = 'unicode.symbol', 
                                        destination = 'country.name', 
                                        warn = TRUE, 
@@ -113,14 +110,15 @@ ask_a_manager_2021 <- ask_a_manager_2021%>%
     )
 
 
+
 country_list <- unique(countryname_dict$country.name.en)
 
-typos <- ask_a_manager_2021%>%
+typos <- ask_a_manager_2021_cleaned%>%
   filter(!country %in% unique(countryname_dict$country.name.en))
   
-unique(typos$country)
+unique(typos$country) #identifying the the typos and mismatches that the country code library couldn't deal with
 
-typo_map <- hash()
+typo_map <- hash() #create a map for the correct version of the typos
 
 
 typo_map[["United Kingdom"]] <- list("Scotland",
@@ -257,63 +255,52 @@ typo_map[["Argentina"]] <- list("ARGENTINA BUT MY ORG IS IN THAILAND")
 
 typo_map[["Mexico"]] <- list("México")
 
-keys(typo_map)[2]
-
-as.list(values(typo_map, keys = c))[1]
-
 for (c in keys(typo_map))
 {
-  ask_a_manager_2021 <- ask_a_manager_2021%>%
+  ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
   mutate(country = case_when(country %in% values(typo_map, keys = c) ~c,
                               !country %in% values(typo_map, keys = c) ~ country))
 }
 
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(country_code = countrycode::countrycode(sourcevar =  ask_a_manager_2021_cleaned$country,
+                                                 origin = 'country.name',
+                                                 destination = 'iso3c',
+                                                 nomatch = NA,
+                                                 warn = TRUE))
+
 ```
 
 
 ```{r}
-typos <- ask_a_manager_2021%>%
+typos <- ask_a_manager_2021_cleaned%>%
   filter(!country %in% unique(countryname_dict$country.name.en))
 unique(typos$country)
 
-unique(ask_a_manager_2021$country)
+unique(ask_a_manager_2021_cleaned$country)
 ```
 
-### Clasify Jobs and Industries
+## Currency 
 
-```{r check-after-cleaning}
-# skimr::skim(ask_a_manager_2021)
+```{r }
 
-# unique(ask_a_manager_2021$industry)
+ask_a_manager_2021_cleaned$currency <- substr(ask_a_manager_2021_cleaned$currency, 0, 3)
 
-ask_a_manager_2021 <- ask_a_manager_2021%>%
-  mutate(job_ind = paste(job_title, industry, sep = " "))
-
-occupation_classification <- labourR::classify_occupation(corpus = ask_a_manager_2021, 
-                                         isco_level = 2, 
-                                         lang = "en",
-                                         num_leaves = 10,
-                                         text_col = "job_ind",
-                                         id = "timestamp")%>%
-  mutate(timestamp = ymd_hms(timestamp))
+from <- ask_a_manager_2021_cleaned$currency
+to <- c("USD")
+exchange_rate <- getQuote(paste0(from, to, "=X"))
   
+exchange_rate <- exchange_rate[-c(8),] 
 
- 
-ask_a_manager_2021 <- left_join(ask_a_manager_2021,
-          occupation_classification,
-          by = "timestamp")%>%
-  clean_names()
+exchange_rate <- exchange_rate %>% 
+  mutate(currency = c("USD", "GBP", "CAD", "EUR", "AUD", "CHF", "ZAR", "SEK", "HKD", "JPY")) %>% 
+  select(currency, Last)
 
-```
+ask_a_manager_2021_cleaned <-
+  merge(ask_a_manager_2021_cleaned, exchange_rate, by="currency", all.x = T)
 
-```{r}
-
-
-```
-
-
-```{r}
-
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%  
+  mutate(salary_USD = annual_salary * Last)
 
 ```
 
