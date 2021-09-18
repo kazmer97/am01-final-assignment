@@ -315,11 +315,11 @@ standard_industry <- c("Accounting, Banking & Finance",
                        "Art & Design",
                        "Business or Consulting",
                        "Computing or Tech",
-                       "Education (Primary/Secondary",
+                       "Education (Primary/Secondary)",
                        "Education (Higher Education)",
                        "Engineering or Manufacturing",
                        "Entertainment",
-                       "Goverment and Public Administration",
+                       "Government and Public Administration",
                        "Health care",
                        "Hospitality & Events",
                        "Insurance",
@@ -337,13 +337,222 @@ standard_industry <- c("Accounting, Banking & Finance",
                        "Transport or Logistics",
                        "Utilities & Telecommunications")
 
+non_standard_industry <- c("Mining and Mentals",
+                           "Aerospace & Defence",
+                           "Automotive",
+                           "Biotechnology",
+                           "Church",
+                           "Food & Bevarage",
+                           "Animal Care",
+                           "Library & Publishing",
+                           "Fashion")
+
+
+industry_map <- hash()
+
+for(i in standard_industry)
+{
+  industry_map[[as.character(i)]] <- c("")
+}
+
+for(i in non_standard_industry)
+{
+  industry_map[[as.character(i)]] <- c("")
+}
+
  
 ask_a_manager_2021_cleaned%>%
   filter(industry %in% standard_industry)
 # roughly 6000 people used the other function within the industry section.....
-
-unique(ask_a_manager_2021_cleaned$industry[!ask_a_manager_2021_cleaned$industry %in% standard_industry])
 ```
+
+
+```{r industry-cleaning}
+# identify all instances put down to the other category
+outliers_table <- ask_a_manager_2021_cleaned%>%
+  select(industry)%>%
+  filter(!industry %in% standard_industry)%>%
+  mutate(industry = tolower(industry))
+
+#make a list out of it
+outliers <-  tolower(unique(ask_a_manager_2021_cleaned$industry[!ask_a_manager_2021_cleaned$industry %in% standard_industry]))
+
+science_related <- outliers[grep("science",outliers)]
+```
+### Higher education
+
+```{r industry-cleaning}
+# Higher education
+industry_map[["Education (Higher Education)"]] <- outliers[grep("academ",outliers)]
+
+
+industry_map[["Education (Higher Education)"]] <- industry_map[["Education (Higher Education)"]][-grep("non-aca",industry_map[["Education (Higher Education)"]])]
+
+industry_map[["Education (Higher Education)"]]<- industry_map[["Education (Higher Education)"]][-grep("not",industry_map[["Education (Higher Education)"]])]
+
+industry_map[["Education (Higher Education)"]]<- c(outliers[grep("higher educ",outliers)],
+                                                   industry_map[["Education (Higher Education)"]])
+
+industry_map[["Education (Higher Education)"]]<- c(outliers[grep("university",outliers)],
+                                                   industry_map[["Education (Higher Education)"]])
+
+industry_map[["Education (Higher Education)"]]<- c(outliers[grep("college",outliers)],
+                                                   industry_map[["Education (Higher Education)"]])
+outliers_classified <- industry_map[["Education (Higher Education)"]]
+```
+
+### Sales
+```{r industry-cleaning}
+industry_map[["Sales"]] <- c(outliers[grep("procurement",outliers)],
+                                       industry_map[["Sales"]])
+
+
+outliers_classified <-c(industry_map[["Sales"]],
+                        outliers_classified)
+```
+
+### Banking and Finance
+```{r industry-cleaning}
+industry_map[["Accounting, Banking & Finance"]] <-  c(outliers[grep("acturial",outliers)],
+                                       industry_map[["Accounting, Banking & Finance"]])
+
+industry_map[["Accounting, Banking & Finance"]] <-  c(outliers[grep("finance",outliers)],
+                                       industry_map[["Accounting, Banking & Finance"]])
+
+industry_map[["Accounting, Banking & Finance"]] <-  c(outliers[grep("private equity",outliers)],
+                                       industry_map[["Accounting, Banking & Finance"]])
+
+
+outliers_classified <-c(industry_map[["Accounting, Banking & Finance"]],
+                        outliers_classified)
+```
+
+### Engineering Manufacturing
+```{r industry-cleaning}
+
+industry_map[["Engineering or Manufacturing"]] <-c()
+
+industry_map[["Engineering or Manufacturing"]] <- c(outliers[grep("^(?=.*manufactur)(?!.*food)(?!.*aerospace)",outliers, perl = TRUE)],
+                                       industry_map[["Engineering or Manufacturing"]])
+
+industry_map[["Engineering or Manufacturing"]]
+
+outliers_classified <-c(industry_map[["Engineering or Manufacturing"]],
+                        outliers_classified)
+```
+
+### Health Care
+```{r industry-cleaning}
+industry_map[["Health care"]] <-c()
+
+industry_map[["Health care"]] <- c(outliers[grep("^(?=.*medical)(?!.*not)",outliers, perl = TRUE)],
+                                   industry_map[["Health care"]])
+
+industry_map[["Health care"]] <- c(outliers[grep("pharmaceuticals",outliers)],
+                                   industry_map[["Health care"]])
+
+industry_map[["Health care"]] <- c(outliers[grep("beauty",outliers)],
+                                   industry_map[["Health care"]])
+
+outliers_classified <-c(industry_map[["Health care"]],
+                        outliers_classified)
+
+industry_map[["Health care"]]
+```
+
+### Tech
+```{r industry-cleaning}
+industry_map[["Computing or Tech"]] <- c(outliers[grep("^tech$",outliers)],
+                                   industry_map[["Computing or Tech"]])
+
+industry_map[["Computing or Tech"]] <- c(outliers[grep("^technology",outliers)],
+                                   industry_map[["Computing or Tech"]])
+
+industry_map[["Computing or Tech"]] <- c(outliers[grep("software",outliers)],
+                                   industry_map[["Computing or Tech"]])
+
+industry_map[["Computing or Tech"]] <- c(outliers[grep("internet",outliers)],
+                                   industry_map[["Computing or Tech"]])
+
+outliers_classified <-c(industry_map[["Computing or Tech"]],
+                        outliers_classified)
+```
+
+### Transport or Logistics
+
+```{r industry-cleaning}
+industry_map[["Transport or Logistics"]] <- c(outliers[grep("distribution",outliers)],
+                                   industry_map[["Transport or Logistics"]])
+
+industry_map[["Transport or Logistics"]] <- c(outliers[grep("import",outliers)],
+                                   industry_map[["Transport or Logistics"]])
+
+industry_map[["Transport or Logistics"]] <- c(outliers[grep("supply chain",outliers)],
+                                   industry_map[["Transport or Logistics"]])
+
+outliers_classified <-c(industry_map[["Transport or Logistics"]],
+                        outliers_classified)
+```
+
+### Government and Public Administration
+```{r industry-cleaning}
+industry_map[["Government and Public Administration"]] <- c(outliers[grep("government",outliers)],
+                                   industry_map[["Government and Public Administration"]])
+
+industry_map[["Government and Public Administration"]] <- c(outliers[grep("politics",outliers)],
+                                   industry_map[["Government and Public Administration"]])
+
+industry_map[["Government and Public Administration"]] <- c(outliers[grep("administration",outliers)],
+                                   industry_map[["Government and Public Administration"]])
+
+industry_map[["Government and Public Administration"]] <- c(outliers[grep("public health",outliers)],
+                                   industry_map[["Government and Public Administration"]])
+
+outliers_classified <-c(industry_map[["Government and Public Administration"]],
+                        outliers_classified)
+```
+
+### Property or Construction
+```{r industry-cleaning}
+industry_map[["Property or Construction"]] <- c(outliers[grep("architect",outliers)],
+                                   industry_map[["Property or Construction"]])
+
+outliers_classified <-c(industry_map[["Property or Construction"]],
+                        outliers_classified)
+```
+
+### Aerospace & Defence
+```{r industry-cleaning}
+industry_map[["Aerospace & Defence"]] <- c(outliers[grep("aerospace",outliers)],
+                                   industry_map[["Aerospace & Defence"]])
+
+outliers_classified <-c(industry_map[["Aerospace & Defence"]],
+                        outliers_classified)
+```
+
+### Mining and Metal
+```{r industry-cleaning}
+
+industry_map[["Mining and Mentals"]] <- c(outliers[grep("mining",outliers)],
+                                   industry_map[["Mining and Mentals"]])
+
+outliers_classified <-c(industry_map[["Mining and Mentals"]],
+                        outliers_classified)
+```
+
+
+
+```{r}
+values(industry_map)
+
+# check outliers reamining
+
+outliers_left <- outliers_table%>%
+  filter(!industry %in% outliers_classified)
+outliers_left
+
+```
+
 
 **Adding ISCO classification to the dataset** 
 ```{r industry-cleaning}
