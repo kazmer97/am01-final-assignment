@@ -953,7 +953,7 @@ t.test(mill_men, mill_women)
 
 ```
 
-H0 cannot be rejected as the t-value is less then 2. Which means the difference seen in tendency to identify with multiple races between genders is due to the unequal sample sizes.
+H1 can be rejected as the t-value is more then 2. 
 
 Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
 
@@ -1013,30 +1013,51 @@ Some Countries have a very small representation within the dataset and the respo
 
 ```{r single-race}
 single_race_data <- n_race_responses%>%
-  filter(multiple_race == 0) # only use responses that only put down one race
+  filter(multiple_race == 0)%>% # only use responses that only put down one race
+  mutate(race = as.character(race[1]))%>%
+  filter(!is.na(race))
 
 
-# remove countries with less then 10 respondants
+
 
 single_race_data <-single_race_data%>%
   group_by(country)%>%
-  mutate(num_resp = n())%>%
+  mutate(num_resp_country = n())%>%
+  ungroup()%>%
+  group_by(race)%>%
+  mutate(num_resp_race = n())%>%
   ungroup()
 
 ```
+
+### Race Distribtion of the Dataset
+
+```{r}
+
+ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
+  geom_bar()+
+  coord_flip()+
+  theme_bw()+
+  labs(title = "Race distribution by single race",
+       y = "number of responses",
+       x = "race")
+
+```
+
+
 
 ### Race distribution from countries with more then 50 responses
 
 ```{r race-distribution}
 
 country_race <- single_race_data%>%
-  filter(num_resp > 50, !is.na(race))%>%
+  filter(num_resp_country > 50, !is.na(race))%>%
   rowwise()%>%
   mutate(race = as.character(race[1]))%>%
   group_by(country, race)%>%
-  summarise(num_resp, race_count = n())%>%
-  mutate(race_prc = race_count/num_resp)%>%
-  summarise(num_resp = max(num_resp),
+  summarise(num_resp_country, race_count = n())%>%
+  mutate(race_prc = race_count/num_resp_country)%>%
+  summarise(num_resp_country = max(num_resp_country),
             race_count = max(race_count),
             race_prc = max(race_prc))%>%
   mutate(race_prc = round(race_prc*100,2))
@@ -1044,7 +1065,8 @@ country_race <- single_race_data%>%
 ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
   geom_col( aes(fill = race))+
   facet_wrap(~country)+
-  theme(axis.title.y = element_blank())+
+  theme(axis.title.y = element_blank(),
+        plot.title = element_text())+
   labs(title = "Population Distribution in Countries with more then 50 respondants",
        x = "% of Respondents",
        fill  = "Race Classification")
@@ -1054,20 +1076,48 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
 ```{r}
 
 industry_race <- single_race_data%>%
-  filter(!is.na(industry), num_resp > 50)%>%
-  group_by(industry, race)%>%
-  summarise(num_resp, 
-            race_count = n())%>%
-  mutate(race_prc = race_count/num_resp)%>%
-  summarise(num_resp = max(num_resp),
-            race_count = max(race_count),
-            race_prc = max(race_prc))%>%
-  mutate(race_prc = round(race_prc*100,2))
+  filter(!is.na(industry_cleaned), num_resp_country > 50, !is.na(country), !is.na(race))%>%
+  group_by(industry_cleaned, race)%>%
+  summarise(race_count = n())%>%
+  mutate(race_prc = race_count/sum(race_count))%>%
+  mutate(race_prc = round(race_prc*100,2))%>%
+  ungroup()%>%
+  group_by(industry_cleaned)%>%
+  mutate(industry_total = sum(race_count))
+  
 
-ggplot(industry_race, aes(x = industry,fill = race))+
-  geom_bar(position = "fill")+
-  facet_wrap(~country)
+ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_count, fill = race ))+
+  geom_col()+
+  labs(title = "Race distribution within Industries",
+       x = "Number of Respondants",
+       y = "Industry Classification")+
+  theme_bw()
+  
 ```
 
+```{r}
+industry_race_top5 <- industry_race%>%
+  pivot_wider(id_cols = 1, names_from = race, values_from = 3)%>%
+  replace(is.na(.), 0)%>%
+  mutate(industry_total = rowSums(across(where(is.numeric))))%>%
+  arrange(desc(industry_total))%>%
+  head(5)%>%
+  pivot_longer(cols = 2:7, names_to = "race")%>%
+  group_by(industry_cleaned)%>%
+  mutate(prc = round(value/sum(value)*100, 2))
+  
 
+  
+ggplot(industry_race_top5, aes(y = reorder(industry_cleaned, value), x = value, fill = race ))+
+  geom_col()+
+  labs(title = "Race distribution within top 5 Industries",
+       x = "Number of Respondants",
+       y = "Industry Classification")+
+  theme_bw()
+  # geom_text(aes(label = sprintf("%.2f%%",prc)), position = position_stack(vjust = 0.5))  geom_text(aes(l
+```
+
+```{r}
+
+```
 
