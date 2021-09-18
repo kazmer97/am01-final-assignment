@@ -63,17 +63,17 @@ library(hash)
 # Google Sheets permissions did not work with my google account
 
 # use googlesheets4 to get data
-url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
-googlesheets4::gs4_auth() # google sheets authorisation
+#url <- "https://docs.google.com/spreadsheets/d/1IPS5dBSGtwYVbjsfbaMCYIWnOuRmJcbequohNxCyGVw/edit?resourcekey#gid=1625408792"
+#googlesheets4::gs4_auth() # google sheets authorisation
 
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
-ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
-  janitor::clean_names()
+#ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
+ # janitor::clean_names()
 
 # if googlesheets is now working, read local copy
-# ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-  # janitor::clean_names()
+ ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
+   janitor::clean_names()
   
 ```
 
@@ -301,8 +301,214 @@ ask_a_manager_2021_cleaned <-
   merge(ask_a_manager_2021_cleaned, exchange_rate, by="currency", all.x = T)
 
 ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%  
-  mutate(salary_USD = annual_salary * Last)%>%
+  mutate(salary_USD = annual_salary * last)%>%
   clean_names()
 
 ```
+
+
+1.) Mean salary for US, UK, Canada, Australia, Germany,
+```{r}
+library(infer)
+#we want to work on the top 5 countries with the most data points..
+
+country_codes <- c("USA", "GBR", "AUS", "CAN", "DEU")
+
+mean_salary_by_country <- ask_a_manager_2021_cleaned %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(country_code  %in% country_codes ) %>% 
+  group_by(country_code) %>% 
+  summarise(mean_salary = mean(salary_usd)) %>% 
+  arrange(desc(mean_salary))
+  
+
+mean_salary_by_country
+set.seed(123)
+
+#####CI for USA Salary
+
+#confidence interval bootstrap
+boot_dist_usa <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == "USA") %>% 
+  specify(response = salary_usd) %>%
+  # Generate bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  # Calculate mean of each bootstrap sample
+  calculate(stat = "mean")
+boot_dist_usa
+
+#CI and mean table
+percentile_ci_usa <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = " USA",
+         mean = mean(boot_dist_usa$stat)) %>% 
+  relocate(country_code)
+
+percentile_ci_usa
+
+
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist_usa ) +
+  shade_ci(endpoints = percentile_ci1, fill="khaki")
+
+#####CI for Germany Salary
+
+#confidence interval bootstrap
+boot_dist_deu <-ask_a_manager_2021_cleaned%>% 
+  filter(country_code == "DEU") %>% 
+  specify(response = salary_usd) %>%
+  # Generate bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  # Calculate mean of each bootstrap sample
+  calculate(stat = "mean")
+
+boot_dist_deu
+
+#Creating the CI table with the country code
+percentile_ci_deu <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = "DEU",
+         mean = mean(boot_dist_deu$stat)) %>% 
+  relocate(country_code)
+percentile_ci_deu
+
+
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist_deu) +
+  shade_ci(endpoints = percentile_ci2, fill="khaki")
+
+
+
+######CI for Australia Salary
+
+#confidence interval bootstrap
+boot_dist_aus <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == "AUS") %>% 
+  specify(response = salary_usd) %>%
+  # Generate bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  # Calculate mean of each bootstrap sample
+  calculate(stat = "mean")
+
+
+#creating the CI table with country code
+percentile_ci_aus <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = "AUS",
+         mean = mean(boot_dist_aus$stat)) %>% 
+  relocate(country_code) 
+
+percentile_ci_aus
+
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist_aus) +
+  shade_ci(endpoints = percentile_ci2, fill="khaki")
+
+
+
+####CI for UK
+  
+  boot_dist_gbr <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == "GBR") %>% 
+  specify(response = salary_usd) %>%
+  # Generate bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  # Calculate mean of each bootstrap sample
+  calculate(stat = "mean")
+  
+  
+#creating the CI table with country code
+percentile_ci_gbr <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = "GBR",
+         mean = mean(boot_dist_gbr$stat)) %>% 
+  relocate(country_code)
+
+ percentile_ci_gbr 
+
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist_gbr) +
+  shade_ci(endpoints = percentile_ci4, fill="khaki")
+
+#####CI for Canada Salary
+  
+  #confidence interval bootstrap
+boot_dist_can <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == "CAN") %>% 
+  specify(response = salary_usd) %>%
+  # Generate bootstrap samples
+  generate(reps = 1000, type = "bootstrap") %>%
+  # Calculate mean of each bootstrap sample
+  calculate(stat = "mean")
+
+
+#creating the CI table with country code
+percentile_ci_can <- get_ci(boot_dist_can , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = "CAN",
+         mean = mean(boot_dist_can$stat)) %>% 
+  relocate(country_code)
+
+percentile_ci_can 
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist_can) +
+  shade_ci(endpoints = percentile_ci5, fill="khaki")
+  
+  
+#Merged table of CIs and means..
+merged_table <- rbind(percentile_ci_usa, percentile_ci_deu) 
+merged_table <- rbind(merged_table, percentile_ci_aus) 
+merged_table <- rbind(merged_table, percentile_ci_gbr) 
+merged_table <- rbind(merged_table, percentile_ci_can)
+merged_table
+
+
+
+#Graph of CIs:
+
+
+ 
+table(ask_a_manager_2021_cleaned$country)
+
+```
+
+CI graphs for the mean salary by country:
+
+```{r}
+
+
+mean_salary_comparison %>% 
+  ggplot(aes)
+```
+
+
+```{r}
+
+
+
+median_salary_by_country <- ask_a_manager_2021_cleaned %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(country_code  %in% country_codes ) %>% 
+  group_by(country_code) %>% 
+  summarise(median_salary = median(salary_usd)) %>% 
+  arrange(desc(median_salary))
+
+
+median_salary_by_country
+
+#hypothesis salary between deu and usa 
+
+#confidence bootstrap
+
+```
+
+
+2.) Top 5 Sectors such as Tech salary for US, Uk bla bla...
+
+
+3.) regression: country ~ salary...
++
+country, education 
++
+country, education, experience
+
+
+
+
+
 
