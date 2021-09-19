@@ -71,12 +71,12 @@ googlesheets4::gs4_auth() # google sheets authorisation
 
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
-ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
-  janitor::clean_names()
+# ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
+  # janitor::clean_names()
 
 # if googlesheets is now working, read local copy
-# ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-#   janitor::clean_names()
+ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
+  janitor::clean_names()
   
 ```
 
@@ -281,31 +281,71 @@ unique(typos$country)
 unique(ask_a_manager_2021_cleaned$country)
 ```
 
-## Currency
+## Clean Currency and Salary data
 
 ```{r }
 
 ask_a_manager_2021_cleaned$currency <- substr(ask_a_manager_2021_cleaned$currency, 0, 3)
 
-from <- ask_a_manager_2021_cleaned$currency
+annual_salary_stats <- mosaic::favstats(salary_cleaning$annual_salary)
+
+# check if the selected currency matches the provided country
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(match_currency = countrycode(country, "country.name", "iso4217c"),
+       check_match = match_currency==currency)
+
+# change the currency for the highest annual salaries if they don't match the countries currency as it is likely wrong
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(currency = case_when(annual_salary > annual_salary_stats$Q3 & check_match == F ~ match_currency,
+                              TRUE ~ currency))
+
+from <- unique(ask_a_manager_2021_cleaned$match_currency)
 to <- c("USD")
 exchange_rate <- getQuote(paste0(from, to, "=X"))
-  
-exchange_rate <- exchange_rate[-c(8),] 
+
+exchange_rate <- exchange_rate%>%
+  tibble::rownames_to_column(var = "index")
 
 exchange_rate <- exchange_rate %>% 
-  mutate(currency = c("USD", "GBP", "CAD", "EUR", "AUD", "CHF", "ZAR", "SEK", "HKD", "JPY")) %>% 
-  select(currency, Last)%>%
+  mutate(currency = substring(exchange_rate$index, first = 1, last =3)) %>% 
+  select(index, currency, Last)%>%
   clean_names()
 
 ask_a_manager_2021_cleaned <-
   merge(ask_a_manager_2021_cleaned, exchange_rate, by="currency", all.x = T)
+  
 
+ask_a_manager_2021_cleaned <- rename(ask_a_manager_2021_cleaned, exrate_to_USD = last)
+
+ask_a_manager_2021_cleaned <- rename(ask_a_manager_2021_cleaned, exchange_matching_check = index)
+
+#calculate usd salary
 ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned %>%  
-  mutate(salary_usd = annual_salary * last)%>%
+  mutate(salary_usd = annual_salary * exrate_to_USD)%>%
   clean_names()
 
+
+usd_salary_stats <- mosaic::favstats(ask_a_manager_2021_cleaned$salary_usd)
+
 ```
+
+**Check some of the lowest values within the dataset some of them likely left of 1000**
+```{r}
+
+potential_000missing <- ask_a_manager_2021_cleaned%>%
+  filter(salary_usd <= 999)
+
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(annual_salary = case_when(salary_usd < 1000 ~ annual_salary*1000,
+                                   TRUE ~ annual_salary),
+         salary_usd = case_when(salary_usd < 1000 ~ salary_usd*1000,
+                                   TRUE ~ salary_usd))
+
+usd_salary_stats <- mosaic::favstats(ask_a_manager_2021_cleaned$salary_usd)
+
+
+```
+
 
 ## Industry {.tabset}
 
@@ -718,6 +758,9 @@ industry_map[["Business or Consulting"]] <- c(outliers[grep("environmental",outl
 industry_map[["Business or Consulting"]] <- c(outliers[grep("consult",outliers)],
                                    industry_map[["Business or Consulting"]])
 
+industry_map[["Business or Consulting"]] <- c(outliers[grep("professional services",outliers)],
+                                   industry_map[["Business or Consulting"]])
+
 outliers_classified <-c(industry_map[["Business or Consulting"]],
                         outliers_classified)
 ```
@@ -835,7 +878,7 @@ labR_classifications
 
 ##  {.unnumbered}
 
-### Save cleaned Data
+## Save cleaned Data
 
 ```{r}
 
