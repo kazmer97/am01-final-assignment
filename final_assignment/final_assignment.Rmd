@@ -845,29 +845,180 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 ```
 
 
-1.) Mean salary for US, UK, Canada, Australia, Germany,
+#Country 
+
+1.) Mean salary for US, UK, Canada, Australia, Germany, 
 ```{r}
+
 library(infer)
 #we want to work on the top 5 countries with the most data points..
 
 country_codes <- c("USA", "GBR", "AUS", "CAN", "DEU")
 
-mean_salary_by_country <- ask_a_manager_2021_cleaned %>% 
+
+```
+
+
+#What is the most popular industry among the five countries we selected?
+```{r}
+#Industry exploration: gives salary by the selected countries and all industry
+salary_exploration <- ask_a_manager_2021_cleaned %>% 
+  filter(!is.na(salary_usd)) %>%    
+  filter(country_code %in% country_codes) %>% 
+  select(country, country_code, salary_usd, industry) %>% 
+  group_by(country_code)
+
+salary_exploration 
+
+#Choosing the most popular industries in the survey for the designated countries
+industry_count <- salary_exploration %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+industry_count
+```
+
+Overall Computing or Tech is the most popular sector among the 5 chosen countries, followed by Education, Nonprofits...
+
+
+We would like to see the popularity of the Computing or Tech industry in each country:
+
+```{r}
+#for us
+popularity_usa <- salary_exploration %>% 
+  filter(country_code == "USA") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+popularity_usa
+```
+
+In the US, the most popular industry is Computing or Tech like the overall population. Since US has the most datapoints, it might have affected the distribution of the popularity of tech overall in global data. 
+
+```{r}
+popularity_uk <- salary_exploration %>% 
+  filter(country_code == "GBR") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+popularity_uk
+```
+
+In the UK, Computing or Tech is the most popular sector among the survey takers as well. And Accounting, Banking & Finance follows. 
+
+
+```{r}
+
+popularity_uk <- salary_exploration %>% 
+  filter(country_code == "GBR") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+popularity_uk
+```
+
+
+
+
+```{r}
+popularity_deu <- salary_exploration %>% 
+  filter(country_code == "DEU") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+popularity_deu
+```
+In Germany, the most popular sector is Computing or Tech as well. 
+
+
+
+```{r}
+#for australia
+popularity_aus <- salary_exploration %>% 
+  filter(country_code == "AUS") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+popularity_aus
+```
+Computing or Tech is the most popular sector in Australia as well!
+
+
+```{r}
+popularity_can <- salary_exploration %>% 
+  filter(country_code == "CAN") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(!is.na(industry)) %>% 
+  group_by(industry) %>% 
+  count() %>% 
+  arrange(desc(n))
+popularity_can
+```
+
+Tech is the most popular sector in Canada too. 
+
+
+In every single country on our country list, tech is the most popular industry. Now, we would like to see the mean and median tech salary by each country. That's why, it is reasonable to focus on the Tech sector.
+
+
+Boxplot of Computing or Tech salaries across USA, Australia, Germany, UK, Canada
+```{r}
+tech_salary_boxplot_data <- salary_exploration %>%
+  filter(industry =="Computing or Tech")
+
+tech_salary_boxplot <- ggplot(data = tech_salary_boxplot_data, aes(x = salary_usd, y=fct_reorder(country, salary_usd))) +
+  geom_boxplot() +
+  labs( title= " Tech salaries across USA, Australia, Germany, UK, Canada",
+        x="Salary (USD)",
+        y="Countries")
+
+tech_salary_boxplot
+```
+According to the box plot, USA has the highest mean Computing and Tech Salary. USA also has high variability, since it is known as the tech hub of the world which leads to some salaries being extremely high. 
+
+```{r}
+
+mean_median_tech_salary_by_country <- ask_a_manager_2021_cleaned %>% 
   filter(!is.na(salary_usd)) %>% 
   filter(country_code  %in% country_codes ) %>% 
+  filter(industry == "Computing or Tech") %>% 
   group_by(country_code) %>% 
-  summarise(mean_salary = mean(salary_usd)) %>% 
-  arrange(desc(mean_salary))
-  
+  summarise(mean_tech_salary = mean(salary_usd),
+            median_tech_salary = median(salary_usd)) %>% 
+  arrange(desc(mean_tech_salary))
 
-mean_salary_by_country
+
+mean_median_tech_salary_by_country
+
+
+```
+USA has more mean and median tech salary, followed by Australia and Germany and UK.
+
+```{r}
 set.seed(123)
 
-#####CI for USA Salary
+
+#####CI for USA Mean Salary
 
 #confidence interval bootstrap
 boot_dist_usa <- ask_a_manager_2021_cleaned%>% 
   filter(country_code == "USA") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
@@ -875,24 +1026,34 @@ boot_dist_usa <- ask_a_manager_2021_cleaned%>%
   calculate(stat = "mean")
 boot_dist_usa
 
-#CI and mean table
-percentile_ci_usa <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = " USA",
-         mean = mean(boot_dist_usa$stat)) %>% 
-  relocate(country_code)
 
 percentile_ci_usa
+
+percentile_ci_usa2 <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") 
+#for visualisation
+
+
+#CI and mean table
+percentile_ci_usa <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") %>% 
+  mutate(country_code = "USA",
+         mean = mean_median_tech_salary_by_country[[1,2]]) %>% 
+  relocate(country_code)
+
 
 
 #visualisation of the resulting bootstrap distribution and the CIs
   visualize(boot_dist_usa ) +
-  shade_ci(endpoints = percentile_ci1, fill="khaki")
+  shade_ci(endpoints = percentile_ci_usa2, fill="khaki")
+```
 
+```{r}
 #####CI for Germany Salary
 
 #confidence interval bootstrap
 boot_dist_deu <-ask_a_manager_2021_cleaned%>% 
   filter(country_code == "DEU") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
@@ -904,22 +1065,28 @@ boot_dist_deu
 #Creating the CI table with the country code
 percentile_ci_deu <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "DEU",
-         mean = mean(boot_dist_deu$stat)) %>% 
+         mean = mean_median_tech_salary_by_country[[3,2]]) %>% 
   relocate(country_code)
 percentile_ci_deu
 
 
+percentile_ci_deu2 <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") #for visualisation
+
 #visualisation of the resulting bootstrap distribution and the CIs
   visualize(boot_dist_deu) +
-  shade_ci(endpoints = percentile_ci2, fill="khaki")
+  shade_ci(endpoints = percentile_ci_deu2, fill="khaki")
+
+```
 
 
-
+```{r}
 ######CI for Australia Salary
 
 #confidence interval bootstrap
 boot_dist_aus <- ask_a_manager_2021_cleaned%>% 
   filter(country_code == "AUS") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
@@ -930,21 +1097,27 @@ boot_dist_aus <- ask_a_manager_2021_cleaned%>%
 #creating the CI table with country code
 percentile_ci_aus <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "AUS",
-         mean = mean(boot_dist_aus$stat)) %>% 
+         mean = mean_salary_by_country[[2,2]]) %>% 
   relocate(country_code) 
 
-percentile_ci_aus
+percentile_ci_aus2 <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") #for visualisation
 
 #visualisation of the resulting bootstrap distribution and the CIs
   visualize(boot_dist_aus) +
-  shade_ci(endpoints = percentile_ci2, fill="khaki")
+  shade_ci(endpoints = percentile_ci_aus2, fill="khaki")
+
+
+```
 
 
 
+```{r}
 ####CI for UK
   
   boot_dist_gbr <- ask_a_manager_2021_cleaned%>% 
   filter(country_code == "GBR") %>% 
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
@@ -955,20 +1128,27 @@ percentile_ci_aus
 #creating the CI table with country code
 percentile_ci_gbr <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "GBR",
-         mean = mean(boot_dist_gbr$stat)) %>% 
+         mean = mean( mean_salary_by_country[[4,2]])) %>% 
   relocate(country_code)
 
- percentile_ci_gbr 
-
+ percentile_ci_gbr2 <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") #for visualisation
+ 
 #visualisation of the resulting bootstrap distribution and the CIs
   visualize(boot_dist_gbr) +
-  shade_ci(endpoints = percentile_ci4, fill="khaki")
+  shade_ci(endpoints = percentile_ci_gbr2, fill="khaki")
+
+  
+```
+
+```{r}
 
 #####CI for Canada Salary
   
   #confidence interval bootstrap
 boot_dist_can <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "CAN") %>% 
+  filter(country_code == "CAN") %>%   
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
@@ -979,13 +1159,14 @@ boot_dist_can <- ask_a_manager_2021_cleaned%>%
 #creating the CI table with country code
 percentile_ci_can <- get_ci(boot_dist_can , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "CAN",
-         mean = mean(boot_dist_can$stat)) %>% 
+         mean = mean_salary_by_country[[5,2]]) %>% 
   relocate(country_code)
 
-percentile_ci_can 
+percentile_ci_can2 <- get_ci(boot_dist_can , level = 0.95, type ="percentile") #for visualisation
+
 #visualisation of the resulting bootstrap distribution and the CIs
   visualize(boot_dist_can) +
-  shade_ci(endpoints = percentile_ci5, fill="khaki")
+  shade_ci(endpoints = percentile_ci_can2, fill="khaki")
   
   
 #Merged table of CIs and means..
@@ -994,56 +1175,94 @@ merged_table <- rbind(merged_table, percentile_ci_aus)
 merged_table <- rbind(merged_table, percentile_ci_gbr) 
 merged_table <- rbind(merged_table, percentile_ci_can)
 merged_table
+```
 
 
+```{r}
 
 #Graph of CIs:
+ graph <- ggplot(merged_table, aes(colour = country_code)) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= country_code), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=mean, y=country_code), size = 3 ) +
+  labs(title="Confidence Intervals of Mean Salary by Country in Computing and Tech Industry",
+       subtitle="95% confidence intervals",
+       x="Mean Salary (USD)",
+       y =" ") +
+  theme_bw() +
+    geom_text(aes(label = round(mean,0), round(mean,0), y=country_code), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
 
-
- 
-table(ask_a_manager_2021_cleaned$country)
+graph
 
 ```
 
-CI graphs for the mean salary by country:
+
+We created this graph in order to have an overall understanding of the selected countries' mean salaries in tech and the confidence intervals of their mean. Because USA has more data points, its confidence interval is narrower. 
+
+
+According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing. 
+
+H0: There's no difference between the salaries of US and Germany in the Computing and Tech industry.
+H1: There's a difference between the salaries of US and Germany in the Computing and Tech industry.
+
+
+Use the infer package for hypothesis testing: 
+
+```{r}
+
+tech_usa_aus <- salary_exploration %>% 
+  filter(country_code %in% c("AUS" , "USA")) %>%   
+  filter(!is.na(salary_usd)) 
+
+
+ null_dist <- tech_usa_aus %>%
+  # specify variables
+  specify(salary_usd  ~  country_code)  %>%
+  
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("AUS", "USA"))
+
+
+ggplot(data = null_dist, aes(x = stat)) +
+  geom_histogram()
+
+obs_diff <- tech_usa_aus %>%
+  specify(salary_usd  ~  country_code) %>%
+  calculate(stat = "diff in means", order = c("AUS", "USA"))
+
+
+null_dist %>% visualize() +
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+
+```
+
+According to the hypothesis testing, we can reject the null hypothesis that there is a difference between the mean salaries for tech employees in USA and Australia 
+
+
+
+So, since USA dominates the Tech industry, we would like to analyse the factors that affect the tech salary like income and years of of experience at work.  
+
+Conclusion: US is the place to be for Tech! 
+
+#Factors that affet tech salaries in the US 
+
 
 ```{r}
 
 
-mean_salary_comparison %>% 
-  ggplot(aes)
-```
-
-
-```{r}
-
-
-
-median_salary_by_country <- ask_a_manager_2021_cleaned %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(country_code  %in% country_codes ) %>% 
-  group_by(country_code) %>% 
-  summarise(median_salary = median(salary_usd)) %>% 
-  arrange(desc(median_salary))
-
-
-median_salary_by_country
-
-#hypothesis salary between deu and usa 
-
-#confidence bootstrap
 
 ```
 
 
-2.) Top 5 Sectors such as Tech salary for US, Uk bla bla...
+Education High Salaries
+Experience High Salaries
 
-
-3.) regression: country ~ salary...
-+
-country, education 
-+
-country, education, experience
+What is more important? 
 
 
 
