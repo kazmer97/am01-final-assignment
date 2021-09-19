@@ -67,22 +67,14 @@ library(labourR)
 
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
-<<<<<<< HEAD
+
 #ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
  # janitor::clean_names()
 
 # if googlesheets is now working, read local copy
  ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
    janitor::clean_names()
-=======
-# ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
-  # janitor::clean_names()
-
-# if googlesheets is now working, read local copy
-ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-  janitor::clean_names()
->>>>>>> origin
-  
+   
 ```
 
 # Intitial Data Exploration and Cleaning
