@@ -901,6 +901,9 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 ```
 
 
+#Gender
+
+##Summary Statistics
 ```{r}
 #Table giving counts for each gender category dropping those who left the question blank
 ask_a_manager_2021_cleaned %>% 
@@ -926,6 +929,7 @@ write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
 
 ```
 
+##Plots with experience and salary
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
   geom_boxplot()+
@@ -935,6 +939,7 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
   theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
   NULL
 ```
+
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=overall_years_of_professional_experience, y=salary_usd,color=gender))+
   geom_boxplot()+
@@ -954,6 +959,8 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=years_of_experience_in_field, y=
   labs(title= "Salary in USD by Gender and Years of Experience in Field", x="Years of Experience in   Field", y="Salary in USD")+
   NULL
 ```
+
+##Plots with education and salary
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_completed, y=salary_usd, color=gender))+
   geom_boxplot()+
@@ -965,7 +972,7 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_compl
   NULL
 ```
 
-
+#Linear Model
 ```{r}
 
 names(ask_a_manager_2021_cleaned_gender)
