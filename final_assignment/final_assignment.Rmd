@@ -883,11 +883,21 @@ ask_a_manager_2021_cleaned <- left_join(ask_a_manager_2021_cleaned,
    clean_names()
 
 labR_classifications <- unique(occupation_classification$preferredLabel)
-labR_classifications
 
 ```
 
 ##  {.unnumbered}
+
+## Clean Gender
+
+```{r}
+
+ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
+  mutate(gender = case_when(gender == "Prefer not to answer" ~ "Other or prefer not to answer",
+                            TRUE ~ gender))
+
+```
+
 
 ## Save cleaned Data
 
@@ -905,8 +915,6 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 ```
 
 # Dataset Overview Statistics
-
-## Race
 
 ### Number of responses with each number of Races
 
@@ -958,6 +966,8 @@ n_race_sumary
 
 ```{r single-race}
 single_race_data <- n_race_responses%>%
+  mutate(multiple_race = case_when(n_race > 1 ~1,
+                                   n_race == 1 ~0))%>%
   filter(multiple_race == 0)%>% # only use responses that only put down one race
   mutate(race = as.character(race[1]))%>%
   filter(!is.na(race))
@@ -984,13 +994,30 @@ ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
   coord_flip()+
   theme_bw()+
   labs(title = "Race distribution by single race",
-       y = "number of responses",
-       x = "race")
+       y = "number of responses"
+       )+
+  theme(axis.title.y = element_blank())
 
 ```
 
+## Number of Responses by Gender
 
-## Race distribution from countries with more then 50 responses
+```{r}
+ask_a_manager_2021_cleaned%>%
+  filter(!is.na(gender))%>%
+  group_by(gender)%>%
+  summarise(num_resp_gender = n())%>%
+  ggplot(aes(x = num_resp_gender, y = reorder(gender, num_resp_gender)))+
+  geom_col(fill = "skyblue")+
+  theme_bw()+
+  labs(title = "Number of Responses By Gender",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)
+```
+
+
+### Race distribution from countries with more then 50 responses
 
 ```{r race-distribution}
 
@@ -1015,6 +1042,25 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
        x = "% of Respondents",
        fill  = "Race Classification")
 ```
+
+### Gender distribution from countries with more then 50 responses
+
+```{r}
+
+ask_a_manager_2021_cleaned%>%
+  group_by(country)%>%
+  mutate(num_resp_country = n())%>%
+  ungroup()%>%
+  filter(!is.na(gender), num_resp_country > 50)%>%
+  group_by(gender)%>%
+  summarise(country,num_resp_country, num_resp_gender = n())%>%
+  mutate(prc_gender = num_resp_gender/num_resp_country)%>%
+  ggplot()+
+  geom_col(aes(x = ))
+
+
+```
+
 ## Race by Industry
 
 ```{r}
@@ -1067,8 +1113,6 @@ ask_a_manager_2021_cleaned_gender <- ask_a_manager_2021_cleaned %>%
 write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
 
 ```
-
-## By Country
 
 
 # Relationships in the Data
