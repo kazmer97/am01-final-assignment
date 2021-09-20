@@ -1552,6 +1552,9 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
   NULL
 ```
 
+Now, we would like to focus on Computing or Tech salaries in the US by gender. 
+
+
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=overall_years_of_professional_experience, y=salary_usd,color=gender))+
   geom_boxplot()+
@@ -1632,6 +1635,9 @@ ask_a_manager_2021_cleaned_gender_country %>%
 
 ### Mapping Salaries to US States
 
+The linear model is not the best approach to generate insights from this data. After breaking the data up into different groups and trying to explore the variables, we concluded that there isn't a very strong linear model in the data. We could have filtered the data more in order to create a more linear model, but the more we filter the data the less people would be included. Our linear model, wıth an R squared of about 0.25 includes only __% of the data and we felt it wouldn't be helpful to reduce the model more. Because of this we believe it will be more beneficial to explain the data using graphs and hypothesis tests. 
+
+
 ```{r}
 #loading the libraries
 library(usmap)
@@ -1692,6 +1698,9 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 
 ```
 
+
+Let's look at the health care industry in US. It is in the top 5 popular industries in the US and it is very different from tech. So it may be interesting to see median salary in this industry. 
+
 ```{r}
 #loading the libraries
 library(usmap)
@@ -1721,6 +1730,8 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
   theme(panel.background=element_blank(), legend.position = "right")
 
 ```
+How about Accounting, Banking and Finance?
+
 ```{r}
 #loading the libraries
 library(usmap)
@@ -1751,5 +1762,41 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 
 ```
 
+
+
+
+The regression isn't so great since almost all of the variables are categorical, so we want to conclude more hypothesis testings to produce more insights about the data. 
+
+```{r}
+
+salary_in_tech_by_gender_tech <- ask_a_manager_2021_cleaned %>% 
+  filter(industry == "Computing or Tech") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
+
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender)
+```
+There is a significant difference in the mean salaries of men and woman in the US in the Computing/Tech industry. Tech industry and analytical roles have been dominated by males in the past century. That's why, males might have had the opportunity to get promoted and receive higher salaries. People with high paying roles tend to have 30+ of experience, and there are not many women in tech that have that much experience. 
+```{r}
+salary_in_tech_by_gender_hc <- ask_a_manager_2021_cleaned %>% 
+  filter(industry == "Health care") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
+
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_hc )
+```
+It is very interesting that there is not a significant difference in the mean salaries of men and women in the health care industry! So we fail to reject the null hypothesis. This makes sense since health care is a more traditional profession, so the percentage of women in health care is higher than the percentage of women in tech. This brings up questions on whether or not different industries pay different genders differently! 
+
+
+```{r}
+salary_in_tech_by_gender_bank <- ask_a_manager_2021_cleaned %>% 
+  filter(industry == "Accounting, Banking & Finance") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
+
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_bank )
+```
+
+In the Accounting, Banking & Finance industry, there is still a significant difference between the mean salaries of women and men. This is not suprising since the finance and banking industry has been dominated by males for a century. 
 
 
