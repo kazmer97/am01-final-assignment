@@ -960,19 +960,18 @@ colnames(n_race_sumary) <- c("Number of Races Respondant Identifies with",
 n_race_sumary
     
 ```
-
-### Single Race Responses
+**93.62% of the respondents** selected a single race when filling out the survey.
 
 
 ```{r single-race}
+### clean the data for race statistics with single race responses.
+
 single_race_data <- n_race_responses%>%
   mutate(multiple_race = case_when(n_race > 1 ~1,
                                    n_race == 1 ~0))%>%
   filter(multiple_race == 0)%>% # only use responses that only put down one race
   mutate(race = as.character(race[1]))%>%
   filter(!is.na(race))
-
-
 
 
 single_race_data <-single_race_data%>%
@@ -988,15 +987,17 @@ single_race_data <-single_race_data%>%
 ### Race Distribtion of the Dataset
 
 ```{r}
-
-ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
-  geom_bar()+
-  coord_flip()+
+single_race_data%>%
+  filter(!is.na(race))%>%
+  group_by(race)%>%
+  summarise(num_resp_race = n())%>%
+  ggplot(aes(x = num_resp_race, y = reorder(race, num_resp_race)))+
+  geom_col(fill = "skyblue")+
   theme_bw()+
-  labs(title = "Race distribution by single race",
-       y = "number of responses"
-       )+
-  theme(axis.title.y = element_blank())
+  labs(title = "Number of Responses By Gender",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", num_resp_race/sum(num_resp_race)*100)), hjust = 0.5)
 
 ```
 
@@ -1015,6 +1016,33 @@ ask_a_manager_2021_cleaned%>%
   theme(axis.title.y = element_blank())+
   geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)
 ```
+
+### Number of Responses by Country
+
+```{r}
+
+number_resposes_country <- ask_a_manager_2021_cleaned%>%
+  filter(!is.na(country))%>%
+  group_by(country)%>%
+  summarise(num_resp_country = n())%>%
+  arrange(desc(num_resp_country))
+
+number_resposes_country
+
+ask_a_manager_2021_cleaned%>%
+  filter(!is.na(country))%>%
+  group_by(country)%>%
+  summarise(num_resp_country = n())%>%
+  filter(num_resp_country > 50)%>%
+  ggplot(aes(x = num_resp_country, y = reorder(country, num_resp_country)))+
+  geom_col(fill = "skyblue")+
+  theme_bw()+
+  labs(title = "Number of Responses By Country (with more than 50 responses)",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", num_resp_country/sum(num_resp_country)*100)), hjust = 0.5)
+```
+We can see that Data from the United States dominates the dataset.
 
 
 ### Race distribution from countries with more then 50 responses
@@ -1043,6 +1071,8 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
        fill  = "Race Classification")
 ```
 
+The race distribution of the dataset is not representative of the countries population. For example the United States has an African American population of over 13% while in the dataset it below 5%.
+
 ### Gender distribution from countries with more then 50 responses
 
 ```{r}
@@ -1061,10 +1091,13 @@ ask_a_manager_2021_cleaned%>%
   labs(title = "% of Responses By Gender",
        x = "%")+
   theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", prc)), hjust = 0.5, size =2)+
   facet_wrap(~country)
+  
 
 
 ```
+From the top countries the responses overwhelmingly are from women, execpt the netherlands where the data is very close to balanced. 
 
 ## Race by Industry
 
@@ -1089,7 +1122,7 @@ ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_co
   theme_bw()
   
 ```
-
+As the Race is not representative of the countries real population this graph only informs us of the distribution of the survey respondents across industries and it is more revealing of the blogs reader base rather then industry statistics. 
 
 ## By Gender
 
@@ -1102,6 +1135,7 @@ ask_a_manager_2021_cleaned %>%
 
 #Summary Statistics of Gender and Salary in USD
 ask_a_manager_2021_cleaned %>% 
+  filter(salary_usd != 0)%>%
   group_by(gender) %>%
   drop_na(gender) %>%
   summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
@@ -1205,6 +1239,8 @@ The H0 hypothesis can be rejected as t value is above 2. Which means that it can
 1.) Mean salary for US, UK, Canada, Australia, Germany, 
 
 ##What is the most popular industry among the top five countries with the most responses?
+
+We would like to see the popularity of the Computing or Tech industry in each country:
 ```{r}
 
 library(infer)
@@ -1213,117 +1249,41 @@ library(infer)
 country_codes <- c("USA", "GBR", "AUS", "CAN", "DEU")
 
 
-
 #Industry exploration: gives salary by the selected countries and all industry
 salary_exploration <- ask_a_manager_2021_cleaned %>% 
-  filter(!is.na(salary_usd)) %>%    
+  filter(!is.na(salary_usd), !is.na(industry_cleaned), !is.na(gender)) %>%    
   filter(country_code %in% country_codes) %>% 
-  select(country, country_code, salary_usd, industry) %>% 
-  group_by(country_code)
+  select(country, country_code, salary_usd, industry_cleaned, gender) %>% 
+  group_by(country, industry_cleaned, gender)%>%
+  summarise(num_resp = n())%>%
+  group_by(country)%>%
+  mutate(prc = num_resp/sum(num_resp)*100)
+  # group_by(country, industry_cleaned)%>%
+  # mutate(num_resp)
 
 salary_exploration 
 
 #Choosing the most popular industries in the survey for the designated countries
-industry_count <- salary_exploration %>% 
-  group_by(industry) %>% 
+industry_count <- salary_exploration %>%
+  group_by(industry_cleaned) %>% 
   count() %>% 
   arrange(desc(n))
 industry_count
+
+ggplot(salary_exploration, aes(x = prc, y = reorder(industry_cleaned, prc)))+
+  geom_col(aes(fill = gender))+
+  facet_wrap(~country)+
+  theme_bw()+
+  labs(title = "% of Respondants in Each Industry by Country",
+       x = "%")+
+  theme(axis.title.y = element_blank())
 ```
 
 Overall Computing or Tech is the most popular sector among the 5 chosen countries, followed by Education, Nonprofits...
 
+What we can also see from the graph that most of the blogs male readers are from within the tech industry.
 
-We would like to see the popularity of the Computing or Tech industry in each country:
-
-```{r}
-#for us
-popularity_usa <- salary_exploration %>% 
-  filter(country_code == "USA") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_usa
-```
-
-In the US, the most popular industry is Computing or Tech like the overall population. Since US has the most datapoints, it might have affected the distribution of the popularity of tech overall in global data. 
-
-```{r}
-popularity_uk <- salary_exploration %>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_uk
-```
-
-In the UK, Computing or Tech is the most popular sector among the survey takers as well. And Accounting, Banking & Finance follows. 
-
-
-```{r}
-
-popularity_uk <- salary_exploration %>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_uk
-```
-
-
-
-
-```{r}
-popularity_deu <- salary_exploration %>% 
-  filter(country_code == "DEU") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_deu
-```
-In Germany, the most popular sector is Computing or Tech as well. 
-
-
-
-```{r}
-#for australia
-popularity_aus <- salary_exploration %>% 
-  filter(country_code == "AUS") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-popularity_aus
-```
-Computing or Tech is the most popular sector in Australia as well!
-
-
-```{r}
-popularity_can <- salary_exploration %>% 
-  filter(country_code == "CAN") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-popularity_can
-```
-
-Tech is the most popular sector in Canada too. 
-
+In the US, the most popular industry is Computing or Tech like the overall population. Since US has the most datapoints, it might have affected the distribution of the popularity of tech overall in global data, but this does not seem to be the case.
 
 In every single country on our country list, tech is the most popular industry. Now, we would like to see the mean and median tech salary by each country. That's why, it is reasonable to focus on the Tech sector.
 
@@ -1732,6 +1692,8 @@ ask_a_manager_2021_cleaned_gender_country %>%
 
 ```
 
+### Mapping Salaries to US States
+
 ```{r}
 #loading the libraries
 library(usmap)
@@ -1852,20 +1814,4 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 ```
 
 
-```{r}
-
-ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
-  filter(country == "United States") %>% 
-  filter(industry == "Computing or Tech") 
-
-ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
-                          data=ask_a_manager_2021_lm )
-
-ask_lm %>% 
-  get_regression_table()
-
-ask_lm %>% 
-  get_regression_summaries()
-
-```
 
