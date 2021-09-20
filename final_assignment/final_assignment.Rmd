@@ -1252,7 +1252,7 @@ salary_exploration <- ask_a_manager_2021_cleaned %>%
   filter(!is.na(salary_usd), !is.na(industry_cleaned), !is.na(gender)) %>%    
   filter(country_code %in% top5_country) %>% 
   select(country, country_code, salary_usd, industry_cleaned, gender) %>% 
-  group_by(country, industry_cleaned, gender)%>%
+  group_by(country,country_code, industry_cleaned, gender)%>%
   summarise(num_resp = n())%>%
   group_by(country)%>%
   mutate(prc = num_resp/sum(num_resp)*100)
@@ -1435,36 +1435,11 @@ Use the infer package for hypothesis testing:
 
 ```{r}
 
-tech_usa_aus <- salary_exploration %>% 
-  filter(country_code %in% c("AUS" , "USA")) %>%   
-  filter(!is.na(salary_usd)) 
+tech_usa_aus <- ask_a_manager_2021_cleaned %>% 
+  filter( country_code %in% c("AUS" , "USA")) %>%   
+  filter(!is.na(salary_usd), industry_cleaned == "Computing or Tech")
 
-
- null_dist <- tech_usa_aus %>%
-  # specify variables
-  specify(salary_usd  ~  country_code)  %>%
-  
-  # assume independence, i.e, there is no difference
-  hypothesize(null = "independence") %>%
-  
-  # generate 1000 reps, of type "permute"
-  generate(reps = 1000, type = "permute") %>%
-  
-  # calculate statistic of difference, namely "diff in means"
-  calculate(stat = "diff in means", order = c( "USA","AUS"))
-
-
-ggplot(data = null_dist, aes(x = stat)) +
-  geom_histogram()
-
-obs_diff <- tech_usa_aus %>%
-  specify(salary_usd  ~  country_code) %>%
-  calculate(stat = "diff in means", order = c( "USA", "AUS"))
-
-
-null_dist %>% visualize() +
-  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
-
+t.test(salary_usd ~ country_code, tech_usa_aus)
 
 ```
 
