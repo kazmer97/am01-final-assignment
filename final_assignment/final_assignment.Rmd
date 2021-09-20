@@ -1051,12 +1051,18 @@ ask_a_manager_2021_cleaned%>%
   group_by(country)%>%
   mutate(num_resp_country = n())%>%
   ungroup()%>%
-  filter(!is.na(gender), num_resp_country > 50)%>%
+  filter(!is.na(gender), num_resp_country>50)%>%
   group_by(gender)%>%
-  summarise(country,num_resp_country, num_resp_gender = n())%>%
-  mutate(prc_gender = num_resp_gender/num_resp_country)%>%
-  ggplot()+
-  geom_col(aes(x = ))
+  summarise(country,num_resp_gender = n())%>%
+  mutate(prc = num_resp_gender/sum(num_resp_gender)*100)
+  ggplot(aes(x = num_resp_gender, y = reorder(gender, num_resp_gender)))+
+  geom_col(fill = "skyblue")+
+  theme_bw()+
+  labs(title = "% of Responses By Gender",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  # geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)+
+  facet_wrap(~country)
 
 
 ```
