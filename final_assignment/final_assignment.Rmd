@@ -53,6 +53,19 @@ library(stringr)
 library(stringdist)
 library(hash)
 library(labourR)
+library(here)
+install.packages("moderndive")
+library(moderndive)
+library(tidyverse)
+library(infer)
+library(mosaic)
+install.packages("huxtable")
+library(huxtable)
+install.packages("kableExtra")
+library(kableExtra)
+library(skimr)
+library(ggfortify)
+library(car)
 ```
 
 # Data Import
@@ -842,5 +855,113 @@ write_csv(ask_a_manager_2021_cleaned, here::here("data","ask_manager_2021_cleane
 #optionally load cleaned dataset from here
 
 ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_cleaned.csv"))
+```
+
+
+```{r}
+#Table giving counts for each gender category dropping those who left the question blank
+ask_a_manager_2021_cleaned %>% 
+  drop_na(gender) %>%
+  count(gender, sort=T, .drop=T) 
+
+#Summary Statistics of Gender and Salary in USD
+ask_a_manager_2021_cleaned %>% 
+  group_by(gender) %>%
+  drop_na(gender) %>%
+  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
+            MedianSalary=median(salary_usd, na.rm=T), 
+            sdsalary= sd(salary_usd, na.rm=TRUE), 
+            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
+            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
+            minsalary=min(salary_usd, na.rm=T),
+            maxsalary=max(salary_usd, na.rm=T)) 
+
+ask_a_manager_2021_cleaned_gender <- ask_a_manager_2021_cleaned %>%
+  drop_na(gender)
+
+write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
+
+```
+
+```{r}
+ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
+  geom_boxplot()+
+  scale_y_log10()+
+  labs(title= "Salary in USD by Gender", x="Gender", y="Salary in USD")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
+  NULL
+```
+```{r}
+ggplot(ask_a_manager_2021_cleaned_gender, aes(x=overall_years_of_professional_experience, y=salary_usd,color=gender))+
+  geom_boxplot()+
+  scale_y_log10()+
+  facet_wrap(~gender)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
+  labs(title= "Salary in USD by Gender and Total Years of Experience", x="Total Years of Experience", y="Salary in USD")+
+  NULL
+  
+ggplot(ask_a_manager_2021_cleaned_gender, aes(x=years_of_experience_in_field, y=salary_usd,color=gender))+
+  geom_boxplot()+
+  scale_y_log10()+
+  facet_wrap(~gender)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
+  labs(title= "Salary in USD by Gender and Years of Experience in Field", x="Years of Experience in   Field", y="Salary in USD")+
+  NULL
+```
+```{r}
+ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_completed, y=salary_usd, color=gender))+
+  geom_boxplot()+
+  scale_y_log10()+
+  facet_wrap(~gender)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
+  labs(title= "Salary in USD by Gender and Education Level", x="Education Level", y="Salary in USD")+
+  NULL
+```
+
+
+```{r}
+
+names(ask_a_manager_2021_cleaned_gender)
+ask_lm <- lm(salary_usd ~ country ,
+             data=ask_a_manager_2021_cleaned_gender, )
+
+ask_lm %>% 
+  get_regression_table()
+
+ask_lm %>% 
+  get_regression_summaries()
+
+ask_a_manager_2021_cleaned_gender_country <- ask_a_manager_2021_cleaned_gender %>% 
+  filter(country == "United States")
+
+ask_lm <- lm(salary_usd ~ gender +
+               race + 
+               overall_years_of_professional_experience + 
+               how_old_are_you + industry + 
+               highest_level_of_education_completed,
+               data=ask_a_manager_2021_cleaned_gender_country )
+
+ask_lm %>% 
+  get_regression_table()
+
+ask_lm %>% 
+  get_regression_summaries()
+
+#Summary Stats of Salary by Gender in the USA
+ask_a_manager_2021_cleaned_gender_country %>% 
+  group_by(gender) %>%
+  drop_na(gender) %>%
+  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
+            MedianSalary=median(salary_usd, na.rm=T), 
+            sdsalary= sd(salary_usd, na.rm=TRUE), 
+            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
+            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
+            minsalary=min(salary_usd, na.rm=T),
+            maxsalary=max(salary_usd, na.rm=T)) 
+
 ```
 
