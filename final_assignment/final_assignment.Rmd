@@ -1322,175 +1322,6 @@ mean_median_tech_salary_by_country
 
 
 ```
-USA has more mean and median tech salary, followed by Australia and Germany and UK.
-
-```{r}
-
-
-
-#####CI for USA Mean Salary
-
-#confidence interval bootstrap
-boot_dist_usa <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "USA") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-boot_dist_usa
-
-
-
-percentile_ci_usa2 <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") 
-#for visualisation
-
-
-#CI and mean table
-percentile_ci_usa <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "USA",
-         mean = mean_median_tech_salary_by_country[[1,2]]) %>% 
-  relocate(country_code)
-
-
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_usa ) +
-  shade_ci(endpoints = percentile_ci_usa2, fill="khaki")
-```
-
-```{r}
-#####CI for Germany Salary
-
-#confidence interval bootstrap
-boot_dist_deu <-ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "DEU") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
-boot_dist_deu
-
-#Creating the CI table with the country code
-percentile_ci_deu <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "DEU",
-         mean = mean_median_tech_salary_by_country[[3,2]]) %>% 
-  relocate(country_code)
-percentile_ci_deu
-
-
-percentile_ci_deu2 <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") #for visualisation
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_deu) +
-  shade_ci(endpoints = percentile_ci_deu2, fill="khaki")
-
-```
-
-
-```{r}
-######CI for Australia Salary
-
-#confidence interval bootstrap
-boot_dist_aus <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "AUS") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
-
-#creating the CI table with country code
-percentile_ci_aus <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "AUS",
-         mean = mean_median_tech_salary_by_country[[2,2]]) %>% 
-  relocate(country_code) 
-
-percentile_ci_aus2 <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") #for visualisation
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_aus) +
-  shade_ci(endpoints = percentile_ci_aus2, fill="khaki")
-
-
-```
-
-
-
-```{r}
-####CI for UK
-  
-  boot_dist_gbr <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-  
-  
-#creating the CI table with country code
-percentile_ci_gbr <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "GBR",
-         mean = mean( mean_median_tech_salary_by_country[[4,2]])) %>% 
-  relocate(country_code)
-
- percentile_ci_gbr2 <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") #for visualisation
- 
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_gbr) +
-  shade_ci(endpoints = percentile_ci_gbr2, fill="khaki")
-
-  
-```
-
-```{r}
-
-#####CI for Canada Salary
-  
-  #confidence interval bootstrap
-boot_dist_can <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "CAN") %>%   
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
-
-#creating the CI table with country code
-percentile_ci_can <- get_ci(boot_dist_can , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "CAN",
-         mean = mean_median_tech_salary_by_country[[5,2]]) %>% 
-  relocate(country_code)
-
-percentile_ci_can2 <- get_ci(boot_dist_can , level = 0.95, type ="percentile") #for visualisation
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_can) +
-  shade_ci(endpoints = percentile_ci_can2, fill="khaki")
-  
-  
-#Merged table of CIs and means..
-merged_table <- rbind(percentile_ci_usa, percentile_ci_deu) 
-merged_table <- rbind(merged_table, percentile_ci_aus) 
-merged_table <- rbind(merged_table, percentile_ci_gbr) 
-merged_table <- rbind(merged_table, percentile_ci_can)
-merged_table
-```
 
 ### Confidence interval of Median Salaries
 
@@ -1498,9 +1329,11 @@ merged_table
 
 set.seed(123)
 
-percentile_ci_median_tech <- data.frame(matrix(ncol = 4,nrow = 0))
+median_ci_median_tech <- data.frame(matrix(ncol = 4,nrow = 0))
 
-colnames(percentile_ci_median_tech)<-c("country","lower_ci", "upper_ci","median")
+colnames(median_ci_median_tech)<-c("country","lower_ci", "upper_ci","median")
+
+median_ci_median_tech$country <- as.character(median_ci_median_tech$country)
 
 for(i in top5_country)
 {
@@ -1523,17 +1356,17 @@ boot_dist <- ask_a_manager_2021_cleaned%>%
   calculate(stat = "median")
 
 #creating the CI table with country code
-percentile_ci <- get_ci(boot_dist , level = 0.95, type ="percentile")
+median_ci <- get_ci(boot_dist , level = 0.95, type ="percentile")
 
-percentile_ci_median_tech <- percentile_ci_median_tech%>%
-  mutate(country = i,
-         lower_ci = percentile_ci$lower_ci,
-         upper_ci = percentile_ci$upper_ci,
+median_ci_median_tech <- median_ci_median_tech%>%
+  add_row(country = i,
+         lower_ci = median_ci$lower_ci,
+         upper_ci = median_ci$upper_ci,
          median = median_tech_country$median)
 
 #visualisation of the resulting bootstrap distribution and the CIs
 fig<-  visualize(boot_dist) +
-  shade_ci(endpoints = percentile_ci, fill="khaki")+
+  shade_ci(endpoints = median_ci, fill="khaki")+
   labs(title = sprintf("Simulation of Bootstrap Distribution for Median %s",i))
 
 plot(fig)
@@ -1577,6 +1410,39 @@ mean_conf_country_tech <- ask_a_manager_2021_cleaned%>%
 
 graph
 
+# Median CI
+graph <- ggplot(median_ci_median_tech, aes(colour = country)) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= reorder(country, median)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=median, y=reorder(country, median)), size = 3 ) +
+  labs(title="Confidence Intervals of Median Salary by Country in Computing and Tech Industry",
+       subtitle="95% confidence intervals",
+       x="Median Salary (USD)",
+       y =" ") +
+  theme_bw() +
+    geom_text(aes(label =format(round(median,0), big.mark = ","), x = round(median,0), y=country), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
+
+graph
+
+
+```
+
+There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries. 
+
+```{r}
+
+
+#Graph of CI medians:
+ graph <- ggplot(mean_conf_country_tech, aes(colour = country)) +
+  geom_errorbar(aes(xmin = salary_lower, xmax = salary_upper, y= reorder(country, mean_salary)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=mean_salary, y=reorder(country, mean_salary)), size = 3 ) +
+  labs(title="Confidence Intervals of Mean Salary by Country in Computing and Tech Industry",
+       subtitle="95% confidence intervals",
+       x="Mean Salary (USD)",
+       y =" ") +
+  theme_bw() +
+    geom_text(aes(label =format(round(mean_salary,0), big.mark = ","), x = round(mean_salary,0), y=country), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
+
+graph
 ```
 
 
