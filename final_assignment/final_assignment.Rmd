@@ -1773,10 +1773,10 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 ```{r}
 
 ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
-  filter(country == "United States") %>%
+  filter(country == "United States") %>% 
   filter(industry == "Computing or Tech") 
 
-ask_lm <- lm(salary_usd ~ highest_level_of_education_completed*years_of_experience_in_field ,
+ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
                           data=ask_a_manager_2021_lm )
 
 ask_lm %>% 
