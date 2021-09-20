@@ -287,7 +287,7 @@ unique(ask_a_manager_2021_cleaned$country)
 
 ask_a_manager_2021_cleaned$currency <- substr(ask_a_manager_2021_cleaned$currency, 0, 3)
 
-annual_salary_stats <- mosaic::favstats(salary_cleaning$annual_salary)
+annual_salary_stats <- mosaic::favstats(ask_a_manager_2021_cleaned$annual_salary)
 
 # check if the selected currency matches the provided country
 ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
