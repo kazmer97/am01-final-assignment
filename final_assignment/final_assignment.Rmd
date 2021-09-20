@@ -1741,27 +1741,49 @@ ask_a_manager_2021_cleaned_gender_country %>%
 ```
 
 ```{r}
+#loading the libraries
 library(usmap)
 library(ggplot2)
 
+#cleaning the dataset to include data only from the US and cleaning the names in the State column
 ask_a_manager_states_clean <- ask_a_manager_2021_cleaned %>% 
   filter(country == "United States") %>% 
   rowwise() %>% 
   mutate(state = str_split(state, ",")) %>% 
   mutate(state = as.character(state[1]))
 
+#creating a new dataframe with the mean salaries for each state
 usmap_df <- ask_a_manager_states_clean %>% 
   group_by(state) %>% 
   summarise(median_salary = median(salary_usd, na.rm = TRUE)) 
 
+#plotting the data with a color code
 plot_usmap(regions = "state", data = usmap_df, values = "median_salary") + 
-  labs(title = "U.S. States",
-       subtitle = "Salary US") + 
-  scale_fill_continuous(low = "blue", 
+  labs(title = "Median Salary by State in the United States of America",
+       subtitle = "Ask a Manager Survey 2021") + 
+  scale_fill_continuous(low = "white", 
                         high = "red", 
-                        name = "salary_usd", 
+                        name = "Salary in US $", 
                         label = scales::comma)+
-  theme(panel.background=element_blank())
+  theme(panel.background=element_blank(), legend.position = "right")
+
+```
+
+
+```{r}
+
+ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
+  filter(country == "United States") %>%
+  filter(industry == "Computing or Tech") 
+
+ask_lm <- lm(salary_usd ~ highest_level_of_education_completed*years_of_experience_in_field ,
+                          data=ask_a_manager_2021_lm )
+
+ask_lm %>% 
+  get_regression_table()
+
+ask_lm %>% 
+  get_regression_summaries()
 
 ```
 
