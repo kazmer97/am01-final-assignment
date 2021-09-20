@@ -1732,3 +1732,140 @@ ask_a_manager_2021_cleaned_gender_country %>%
 
 ```
 
+```{r}
+#loading the libraries
+library(usmap)
+library(ggplot2)
+
+#cleaning the dataset to include data only from the US and cleaning the names in the State column
+ask_a_manager_states_clean <- ask_a_manager_2021_cleaned %>% 
+  filter(country == "United States") %>% 
+  rowwise() %>% 
+  mutate(state = str_split(state, ",")) %>% 
+  mutate(state = as.character(state[1]))
+
+#creating a new dataframe with the mean salaries for each state
+usmap_df <- ask_a_manager_states_clean %>% 
+  group_by(state) %>% 
+  summarise(median_salary = median(salary_usd, na.rm = TRUE)) 
+
+#plotting the data with a color code
+plot_usmap(regions = "state", data = usmap_df, values = "median_salary") + 
+  labs(title = "Median Salary by State in the United States of America",
+       subtitle = "Ask a Manager Survey 2021") + 
+  scale_fill_continuous(low = "white", 
+                        high = "red", 
+                        name = "Salary in US $", 
+                        label = scales::comma)+
+  theme(panel.background=element_blank(), legend.position = "right")
+
+```
+```{r}
+#TECH MAP
+
+#loading the libraries
+library(usmap)
+library(ggplot2)
+
+#cleaning the dataset to include data only from the US and cleaning the names in the State column
+ask_a_manager_states_clean <- ask_a_manager_2021_cleaned %>% 
+  filter(country == "United States") %>% 
+  filter(industry == "Computing or Tech") %>% 
+  rowwise() %>% 
+  mutate(state = str_split(state, ",")) %>% 
+  mutate(state = as.character(state[1]))
+
+#creating a new dataframe with the mean salaries for each state
+usmap_df <- ask_a_manager_states_clean %>% 
+  group_by(state) %>% 
+  summarise(median_salary = median(salary_usd, na.rm = TRUE)) 
+
+#plotting the data with a color code
+plot_usmap(regions = "state", data = usmap_df, values = "median_salary") + 
+  labs(title = "Median Salary by State in the United States of America for the Tech Industry",
+       subtitle = "Ask a Manager Survey 2021") + 
+  scale_fill_continuous(low = "white", 
+                        high = "blue", 
+                        name = "Salary in US $", 
+                        label = scales::comma)+
+  theme(panel.background=element_blank(), legend.position = "right")
+
+```
+
+```{r}
+#loading the libraries
+library(usmap)
+library(ggplot2)
+
+#cleaning the dataset to include data only from the US and cleaning the names in the State column
+ask_a_manager_states_clean <- ask_a_manager_2021_cleaned %>% 
+  filter(country == "United States") %>% 
+  filter(industry == "Health care") %>% 
+  rowwise() %>% 
+  mutate(state = str_split(state, ",")) %>% 
+  mutate(state = as.character(state[1]))
+
+#creating a new dataframe with the mean salaries for each state
+usmap_df <- ask_a_manager_states_clean %>% 
+  group_by(state) %>% 
+  summarise(median_salary = median(salary_usd, na.rm = TRUE)) 
+
+#plotting the data with a color code
+plot_usmap(regions = "state", data = usmap_df, values = "median_salary") + 
+  labs(title = "Median Salary by State in the United States of America for the Healthcare Industry",
+       subtitle = "Ask a Manager Survey 2021") + 
+  scale_fill_continuous(low = "white", 
+                        high = "darkgreen", 
+                        name = "Salary in US $", 
+                        label = scales::comma)+
+  theme(panel.background=element_blank(), legend.position = "right")
+
+```
+```{r}
+#loading the libraries
+library(usmap)
+library(ggplot2)
+
+#cleaning the dataset to include data only from the US and cleaning the names in the State column
+ask_a_manager_states_clean <- ask_a_manager_2021_cleaned %>% 
+  filter(country == "United States") %>% 
+  filter(industry == "Accounting, Banking & Finance") %>% 
+  rowwise() %>% 
+  mutate(state = str_split(state, ",")) %>% 
+  mutate(state = as.character(state[1]))
+
+#creating a new dataframe with the mean salaries for each state
+usmap_df <- ask_a_manager_states_clean %>% 
+  group_by(state) %>% 
+  summarise(median_salary = median(salary_usd, na.rm = TRUE)) 
+
+#plotting the data with a color code
+plot_usmap(regions = "state", data = usmap_df, values = "median_salary") + 
+  labs(title = "Median Salary by State in the United States of America for the Accounting, Banking & Finance Industry",
+       subtitle = "Ask a Manager Survey 2021") + 
+  scale_fill_continuous(low = "white", 
+                        high = "darkorange", 
+                        name = "Salary in US $", 
+                        label = scales::comma)+
+  theme(panel.background=element_blank(), legend.position = "right")
+
+```
+
+
+```{r}
+
+ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
+  filter(country == "United States") %>% 
+  filter(industry == "Computing or Tech") 
+
+ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
+                          data=ask_a_manager_2021_lm )
+
+ask_lm %>% 
+  get_regression_table()
+
+ask_lm %>% 
+  get_regression_summaries()
+
+```
+
