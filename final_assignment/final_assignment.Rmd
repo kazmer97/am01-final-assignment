@@ -1177,9 +1177,12 @@ test <- ask_a_manager_2021_cleaned%>%
 
 ggplot(test,aes(x = as.numeric(salary_usd)))+
   geom_density()+
-  scale_x_continuous(limits = c(0, 1000000))+
+  scale_x_continuous(labels = function(salary_usd) sprintf("%.f", salary_usd/1000), limits = c(0, 1000000))+
   facet_wrap(~country)+
-  theme_bw()
+  theme_bw()+
+  labs(title = "Density Distribution of Salaries by Country",
+       x = "Salary in Thousands (USD)",
+       y = "density")
 
 
 ggplot(test, aes(salary_usd, country))+
