@@ -58,14 +58,11 @@ library(scales)
 library(gt)
 library(labourR)
 library(here)
-install.packages("moderndive")
 library(moderndive)
 library(tidyverse)
 library(infer)
 library(mosaic)
-install.packages("huxtable")
 library(huxtable)
-install.packages("kableExtra")
 library(kableExtra)
 library(skimr)
 library(ggfortify)
@@ -85,12 +82,12 @@ library(car)
 # load "Ask a A Manager 2021 Survey" googlesheet
 # https://www.askamanager.org/
 
-#ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
- # janitor::clean_names()
+# ask_a_manager_2021 <- googlesheets4::read_sheet(url) %>%
+# janitor::clean_names()
 
 # if googlesheets is now working, read local copy
  ask_a_manager_2021 <- read_csv(here::here("data", "ask_a_manager_2021.csv"))%>%
-   janitor::clean_names()
+ janitor::clean_names()
    
 ```
 
@@ -132,7 +129,7 @@ country_list <- unique(countryname_dict$country.name.en)
 typos <- ask_a_manager_2021_cleaned%>%
   filter(!country %in% unique(countryname_dict$country.name.en))
   
-unique(typos$country) #identifying the the typos and mismatches that the country code library couldn't deal with
+# unique(typos$country) #identifying the the typos and mismatches that the country code library couldn't deal with
 
 typo_map <- hash() #create a map for the correct version of the typos
 
@@ -220,7 +217,8 @@ typo_map[["United States"]] <- list("United State",
 "UA",
 "I.S",
 "I.S.",
-"United y"
+"United y",
+"UXZ"
 )
 
 typo_map[["Canada"]] <- list(
@@ -237,7 +235,6 @@ typo_map[["NA"]] <- list(
 "We don't get raises, we get quarterly bonuses, but they periodically asses income in the area you work, so I got a raise because a 3rd party assessment showed I was paid too little for the area we were located",
 "Global" ,
 "Currently finance",
-"UXZ",
 "$2,175.84/year is deducted for benefits",
 "Remote",
 "bonus based on meeting yearly goals set w/ my supervisor",
@@ -854,7 +851,7 @@ test <- ask_a_manager_2021_cleaned%>%
   mutate(industry_cleaned = case_when(industry %in% standard_industry ~ industry))%>%
   mutate(industry_lower = tolower(industry))
 
-del("NA", industry_map)
+
 for(i in standard_industry)
 {
   test<-test%>%
@@ -907,12 +904,9 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 
 ```
 
+# Dataset Overview Statistics
 
-# Analyses by Race 
-
-## Multiple Races
-
-By looking at the data it can be seen the quite a few respondents have filled out multiple options. Let s visualise how many exactly.
+## Race
 
 ### Number of responses with each number of Races
 
@@ -958,7 +952,128 @@ colnames(n_race_sumary) <- c("Number of Races Respondant Identifies with",
 n_race_sumary
     
 ```
-### Multiple Race by Gender and Age
+
+### Single Race Responses
+
+
+```{r single-race}
+single_race_data <- n_race_responses%>%
+  filter(multiple_race == 0)%>% # only use responses that only put down one race
+  mutate(race = as.character(race[1]))%>%
+  filter(!is.na(race))
+
+
+
+
+single_race_data <-single_race_data%>%
+  group_by(country)%>%
+  mutate(num_resp_country = n())%>%
+  ungroup()%>%
+  group_by(race)%>%
+  mutate(num_resp_race = n())%>%
+  ungroup()
+
+```
+
+### Race Distribtion of the Dataset
+
+```{r}
+
+ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
+  geom_bar()+
+  coord_flip()+
+  theme_bw()+
+  labs(title = "Race distribution by single race",
+       y = "number of responses",
+       x = "race")
+
+```
+
+
+## Race distribution from countries with more then 50 responses
+
+```{r race-distribution}
+
+country_race <- single_race_data%>%
+  filter(num_resp_country > 50, !is.na(race))%>%
+  rowwise()%>%
+  mutate(race = as.character(race[1]))%>%
+  group_by(country, race)%>%
+  summarise(num_resp_country, race_count = n())%>%
+  mutate(race_prc = race_count/num_resp_country)%>%
+  summarise(num_resp_country = max(num_resp_country),
+            race_count = max(race_count),
+            race_prc = max(race_prc))%>%
+  mutate(race_prc = round(race_prc*100,2))
+
+ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
+  geom_col( aes(fill = race))+
+  facet_wrap(~country)+
+  theme(axis.title.y = element_blank(),
+        plot.title = element_text())+
+  labs(title = "Population Distribution in Countries with more then 50 respondants",
+       x = "% of Respondents",
+       fill  = "Race Classification")
+```
+## Race by Industry
+
+```{r}
+
+industry_race <- single_race_data%>%
+  filter(!is.na(industry_cleaned), num_resp_country > 50, !is.na(country), !is.na(race))%>%
+  group_by(industry_cleaned, race)%>%
+  summarise(race_count = n())%>%
+  mutate(race_prc = race_count/sum(race_count))%>%
+  mutate(race_prc = round(race_prc*100,2))%>%
+  ungroup()%>%
+  group_by(industry_cleaned)%>%
+  mutate(industry_total = sum(race_count))
+  
+
+ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_count, fill = race ))+
+  geom_col()+
+  labs(title = "Race distribution within Industries",
+       x = "Number of Respondants",
+       y = "Industry Classification")+
+  theme_bw()
+  
+```
+
+
+## By Gender
+
+###Summary Statistics
+```{r}
+#Table giving counts for each gender category dropping those who left the question blank
+ask_a_manager_2021_cleaned %>% 
+  drop_na(gender) %>%
+  count(gender, sort=T, .drop=T) 
+
+#Summary Statistics of Gender and Salary in USD
+ask_a_manager_2021_cleaned %>% 
+  group_by(gender) %>%
+  drop_na(gender) %>%
+  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
+            MedianSalary=median(salary_usd, na.rm=T), 
+            sdsalary= sd(salary_usd, na.rm=TRUE), 
+            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
+            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
+            minsalary=min(salary_usd, na.rm=T),
+            maxsalary=max(salary_usd, na.rm=T)) 
+
+ask_a_manager_2021_cleaned_gender <- ask_a_manager_2021_cleaned %>%
+  drop_na(gender)
+
+write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
+
+```
+
+## By Country
+
+
+# Relationships in the Data
+
+## Multiple Race by Gender and Age
 
 Distribution of men and women who identify as more than one Race
 
@@ -1012,7 +1127,7 @@ t.test(mill_men, mill_women)
 
 ```
 
-H1 can be rejected as the t-value is more then 2. 
+H0 can be rejected as the t-value is more then 2. 
 
 Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
 
@@ -1037,177 +1152,10 @@ t.test(millennial, non_millenial)
 The H0 hypothesis can be rejected as t value is above 2. Which means that it can be said with 95% confidence that there is a difference between the proportion of millennials that identify with multiple races and all other age groups. 
 
 
-### Multiple Race by Country
-
-```{r multiple-race-country}
-m_race_country_summary <- n_race_responses%>%
-  mutate(gender = factor(gender,
-         levels = c("Man","Woman","Non-binary","Other or prefer not to answer", "NA")))%>%
-  filter(!is.na(country))%>%
-  group_by(country)%>%
-  summarise(multiple_race, pop = n())%>%
-  ungroup()%>%
-  group_by(country, multiple_race)%>%
-  summarise(pop, 
-            mult_race_num = n())%>%
-  filter(multiple_race ==1)%>%
-  mutate(prop_resp  = multiple_race/pop)%>% # get the percentage of respondants that identify with multiple races
-  group_by(country)%>%
-  summarise(pop = max(pop),
-            mult_race_num = max(mult_race_num), 
-            prop_resp = round(max(prop_resp)*100, 5))%>%
-  arrange(desc(prop_resp))
-
-colnames(m_race_country_summary) <- c("Country","Num. Responses", "Num. Responses with Num. Race >1","% of response with num_race > 1")
-
-m_race_country_summary
-```
-
-
-Some Countries have a very small representation within the dataset and the respondents from there have filled out multiple races. These countries will be excluded from the race statistics going forward where only entries with a single race will be used as the multi race selections are a relatively low proportion of the respondents. 
-
-
-## Single Race Responses
-
-
-```{r single-race}
-single_race_data <- n_race_responses%>%
-  filter(multiple_race == 0)%>% # only use responses that only put down one race
-  mutate(race = as.character(race[1]))%>%
-  filter(!is.na(race))
-
-
-
-
-single_race_data <-single_race_data%>%
-  group_by(country)%>%
-  mutate(num_resp_country = n())%>%
-  ungroup()%>%
-  group_by(race)%>%
-  mutate(num_resp_race = n())%>%
-  ungroup()
-
-```
-
-### Race Distribtion of the Dataset
-
-```{r}
-
-ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
-  geom_bar()+
-  coord_flip()+
-  theme_bw()+
-  labs(title = "Race distribution by single race",
-       y = "number of responses",
-       x = "race")
-
-```
-
-
-
-### Race distribution from countries with more then 50 responses
-
-```{r race-distribution}
-
-country_race <- single_race_data%>%
-  filter(num_resp_country > 50, !is.na(race))%>%
-  rowwise()%>%
-  mutate(race = as.character(race[1]))%>%
-  group_by(country, race)%>%
-  summarise(num_resp_country, race_count = n())%>%
-  mutate(race_prc = race_count/num_resp_country)%>%
-  summarise(num_resp_country = max(num_resp_country),
-            race_count = max(race_count),
-            race_prc = max(race_prc))%>%
-  mutate(race_prc = round(race_prc*100,2))
-
-ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
-  geom_col( aes(fill = race))+
-  facet_wrap(~country)+
-  theme(axis.title.y = element_blank(),
-        plot.title = element_text())+
-  labs(title = "Population Distribution in Countries with more then 50 respondants",
-       x = "% of Respondents",
-       fill  = "Race Classification")
-```
-### Race by Industry
-
-```{r}
-
-industry_race <- single_race_data%>%
-  filter(!is.na(industry_cleaned), num_resp_country > 50, !is.na(country), !is.na(race))%>%
-  group_by(industry_cleaned, race)%>%
-  summarise(race_count = n())%>%
-  mutate(race_prc = race_count/sum(race_count))%>%
-  mutate(race_prc = round(race_prc*100,2))%>%
-  ungroup()%>%
-  group_by(industry_cleaned)%>%
-  mutate(industry_total = sum(race_count))
-  
-
-ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_count, fill = race ))+
-  geom_col()+
-  labs(title = "Race distribution within Industries",
-       x = "Number of Respondants",
-       y = "Industry Classification")+
-  theme_bw()
-  
-```
-
-```{r}
-industry_race_top5 <- industry_race%>%
-  pivot_wider(id_cols = 1, names_from = race, values_from = 3)%>%
-  replace(is.na(.), 0)%>%
-  mutate(industry_total = rowSums(across(where(is.numeric))))%>%
-  arrange(desc(industry_total))%>%
-  head(5)%>%
-  pivot_longer(cols = 2:7, names_to = "race")%>%
-  group_by(industry_cleaned)%>%
-  mutate(prc = round(value/sum(value)*100, 2))
-  
-
-  
-ggplot(industry_race_top5, aes(y = reorder(industry_cleaned, value), x = value, fill = race ))+
-  geom_col()+
-  labs(title = "Race distribution within top 5 Industries",
-       x = "Number of Respondants",
-       y = "Industry Classification")+
-  theme_bw()
-  # geom_text(aes(label = sprintf("%.2f%%",prc)), position = position_stack(vjust = 0.5))  geom_text(aes(l
-```
-
-```{r}
-
-mosaic::favstats(ask_a_manager_2021_cleaned$salary_usd)
-
-ask_a_manager_2021_cleaned%>%
-  filter(salary_usd > 10000000)
-
-test <- ask_a_manager_2021_cleaned%>%
-  group_by(country)%>%
-  mutate(num_responses_country = n())%>%
-  ungroup()%>%
-  filter(num_responses_country > 50)
-
-ggplot(test,aes(x = as.numeric(salary_usd)))+
-  geom_density()+
-  scale_x_continuous(labels = function(salary_usd) sprintf("%.f", salary_usd/1000), limits = c(0, 1000000))+
-  facet_wrap(~country)+
-  theme_bw()+
-  labs(title = "Density Distribution of Salaries by Country",
-       x = "Salary in Thousands (USD)",
-       y = "density")
-
-
-ggplot(test, aes(salary_usd, country))+
-  geom_boxplot()+
-  scale_x_log10()
-```
-
-
-#Country 
 
 1.) Mean salary for US, UK, Canada, Australia, Germany, 
+
+##What is the most popular industry among the top five countries with the most responses?
 ```{r}
 
 library(infer)
@@ -1216,11 +1164,7 @@ library(infer)
 country_codes <- c("USA", "GBR", "AUS", "CAN", "DEU")
 
 
-```
 
-
-#What is the most popular industry among the five countries we selected?
-```{r}
 #Industry exploration: gives salary by the selected countries and all industry
 salary_exploration <- ask_a_manager_2021_cleaned %>% 
   filter(!is.na(salary_usd)) %>%    
@@ -1387,7 +1331,6 @@ boot_dist_usa <- ask_a_manager_2021_cleaned%>%
 boot_dist_usa
 
 
-percentile_ci_usa
 
 percentile_ci_usa2 <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") 
 #for visualisation
@@ -1457,7 +1400,7 @@ boot_dist_aus <- ask_a_manager_2021_cleaned%>%
 #creating the CI table with country code
 percentile_ci_aus <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "AUS",
-         mean = mean_salary_by_country[[2,2]]) %>% 
+         mean = mean_median_tech_salary_by_country[[2,2]]) %>% 
   relocate(country_code) 
 
 percentile_ci_aus2 <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") #for visualisation
@@ -1488,7 +1431,7 @@ percentile_ci_aus2 <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") #
 #creating the CI table with country code
 percentile_ci_gbr <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "GBR",
-         mean = mean( mean_salary_by_country[[4,2]])) %>% 
+         mean = mean( mean_median_tech_salary_by_country[[4,2]])) %>% 
   relocate(country_code)
 
  percentile_ci_gbr2 <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") #for visualisation
@@ -1519,7 +1462,7 @@ boot_dist_can <- ask_a_manager_2021_cleaned%>%
 #creating the CI table with country code
 percentile_ci_can <- get_ci(boot_dist_can , level = 0.95, type ="percentile") %>% 
   mutate(country_code = "CAN",
-         mean = mean_salary_by_country[[5,2]]) %>% 
+         mean = mean_median_tech_salary_by_country[[5,2]]) %>% 
   relocate(country_code)
 
 percentile_ci_can2 <- get_ci(boot_dist_can , level = 0.95, type ="percentile") #for visualisation
@@ -1542,8 +1485,8 @@ merged_table
 
 #Graph of CIs:
  graph <- ggplot(merged_table, aes(colour = country_code)) +
-  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= country_code), width = 0.1, size = 1.5)  +
-  geom_point(aes(x=mean, y=country_code), size = 3 ) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= reorder(country_code, mean)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=mean, y=reorder(country_code, mean)), size = 3 ) +
   labs(title="Confidence Intervals of Mean Salary by Country in Computing and Tech Industry",
        subtitle="95% confidence intervals",
        x="Mean Salary (USD)",
@@ -1585,7 +1528,7 @@ tech_usa_aus <- salary_exploration %>%
   generate(reps = 1000, type = "permute") %>%
   
   # calculate statistic of difference, namely "diff in means"
-  calculate(stat = "diff in means", order = c("AUS", "USA"))
+  calculate(stat = "diff in means", order = c( "USA","AUS"))
 
 
 ggplot(data = null_dist, aes(x = stat)) +
@@ -1593,15 +1536,16 @@ ggplot(data = null_dist, aes(x = stat)) +
 
 obs_diff <- tech_usa_aus %>%
   specify(salary_usd  ~  country_code) %>%
-  calculate(stat = "diff in means", order = c("AUS", "USA"))
+  calculate(stat = "diff in means", order = c( "USA", "AUS"))
 
 
 null_dist %>% visualize() +
   shade_p_value(obs_stat = obs_diff, direction = "two-sided")
 
+
 ```
 
-According to the hypothesis testing, we can reject the null hypothesis that there is a difference between the mean salaries for tech employees in USA and Australia 
+According to the hypothesis testing, we can reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia. 
 
 
 
@@ -1609,7 +1553,7 @@ So, since USA dominates the Tech industry, we would like to analyse the factors 
 
 Conclusion: US is the place to be for Tech! 
 
-#Factors that affet tech salaries in the US 
+##Factors that affet tech salaries in the US 
 
 
 ```{r}
@@ -1626,36 +1570,31 @@ What is more important?
 
 
 
-
-#Gender
-
-##Summary Statistics
 ```{r}
-#Table giving counts for each gender category dropping those who left the question blank
-ask_a_manager_2021_cleaned %>% 
-  drop_na(gender) %>%
-  count(gender, sort=T, .drop=T) 
+industry_race_top5 <- industry_race%>%
+  pivot_wider(id_cols = 1, names_from = race, values_from = 3)%>%
+  replace(is.na(.), 0)%>%
+  mutate(industry_total = rowSums(across(where(is.numeric))))%>%
+  arrange(desc(industry_total))%>%
+  head(5)%>%
+  pivot_longer(cols = 2:7, names_to = "race")%>%
+  group_by(industry_cleaned)%>%
+  mutate(prc = round(value/sum(value)*100, 2))
+  
 
-#Summary Statistics of Gender and Salary in USD
-ask_a_manager_2021_cleaned %>% 
-  group_by(gender) %>%
-  drop_na(gender) %>%
-  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
-            MedianSalary=median(salary_usd, na.rm=T), 
-            sdsalary= sd(salary_usd, na.rm=TRUE), 
-            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
-            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
-            minsalary=min(salary_usd, na.rm=T),
-            maxsalary=max(salary_usd, na.rm=T)) 
-
-ask_a_manager_2021_cleaned_gender <- ask_a_manager_2021_cleaned %>%
-  drop_na(gender)
-
-write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
-
+  
+ggplot(industry_race_top5, aes(y = reorder(industry_cleaned, value), x = value, fill = race ))+
+  geom_col()+
+  labs(title = "Race distribution within top 5 Industries",
+       x = "Number of Respondants",
+       y = "Industry Classification")+
+  theme_bw()
+  # geom_text(aes(label = sprintf("%.2f%%",prc)), position = position_stack(vjust = 0.5))  geom_text(aes(l
 ```
 
-##Plots with experience and salary
+## Relationship between Salary and Gender
+
+###Plots with experience and salary
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
   geom_boxplot()+
@@ -1686,7 +1625,7 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=years_of_experience_in_field, y=
   NULL
 ```
 
-##Plots with education and salary
+###Plots with education and salary
 ```{r}
 ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_completed, y=salary_usd, color=gender))+
   geom_boxplot()+
@@ -1697,6 +1636,9 @@ ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_compl
   labs(title= "Salary in USD by Gender and Education Level", x="Education Level", y="Salary in USD")+
   NULL
 ```
+
+
+
 
 #Linear Model
 ```{r}
