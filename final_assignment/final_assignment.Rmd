@@ -1426,28 +1426,9 @@ graph
 
 ```
 
-There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries. 
-
-```{r}
-
-
-#Graph of CI medians:
- graph <- ggplot(mean_conf_country_tech, aes(colour = country)) +
-  geom_errorbar(aes(xmin = salary_lower, xmax = salary_upper, y= reorder(country, mean_salary)), width = 0.1, size = 1.5)  +
-  geom_point(aes(x=mean_salary, y=reorder(country, mean_salary)), size = 3 ) +
-  labs(title="Confidence Intervals of Mean Salary by Country in Computing and Tech Industry",
-       subtitle="95% confidence intervals",
-       x="Mean Salary (USD)",
-       y =" ") +
-  theme_bw() +
-    geom_text(aes(label =format(round(mean_salary,0), big.mark = ","), x = round(mean_salary,0), y=country), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
-
-graph
-```
-
-
 We created this graph in order to have an overall understanding of the selected countries' mean salaries in tech and the confidence intervals of their mean. Because USA has more data points, its confidence interval is narrower. 
 
+There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries. 
 
 According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing. 
 
@@ -1633,9 +1614,9 @@ ask_a_manager_2021_cleaned_gender_country %>%
 
 ```
 
-### Mapping Salaries to US States
-
 The linear model is not the best approach to generate insights from this data. After breaking the data up into different groups and trying to explore the variables, we concluded that there isn't a very strong linear model in the data. We could have filtered the data more in order to create a more linear model, but the more we filter the data the less people would be included. Our linear model, wıth an R squared of about 0.25 includes only __% of the data and we felt it wouldn't be helpful to reduce the model more. Because of this we believe it will be more beneficial to explain the data using graphs and hypothesis tests. 
+
+#Mapping Salaries to US States
 
 
 ```{r}
@@ -1761,8 +1742,6 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
   theme(panel.background=element_blank(), legend.position = "right")
 
 ```
-
-
 
 
 The regression isn't so great since almost all of the variables are categorical, so we want to conclude more hypothesis testings to produce more insights about the data. 
