@@ -341,6 +341,7 @@ usd_salary_stats <- mosaic::favstats(ask_a_manager_2021_cleaned$salary_usd)
 ```
 
 **Check some of the lowest values within the dataset some of them likely left of 1000**
+
 ```{r}
 
 potential_000missing <- ask_a_manager_2021_cleaned%>%
@@ -357,9 +358,7 @@ usd_salary_stats <- mosaic::favstats(ask_a_manager_2021_cleaned$salary_usd)
 
 ```
 
-
 ## Industry {.tabset}
-
 
 ```{r industry-cleaning}
 standard_industry <- c("Accounting, Banking & Finance",
@@ -413,8 +412,8 @@ for(i in non_standard_industry)
 }
 
  
-ask_a_manager_2021_cleaned%>%
-  filter(industry %in% standard_industry)
+# ask_a_manager_2021_cleaned%>%
+  # filter(industry %in% standard_industry)
 # roughly 2000 people used the other function within the industry section.....
 ```
 
@@ -496,7 +495,7 @@ industry_map[["Engineering or Manufacturing"]] <- c(outliers[grep("mining",outli
 industry_map[["Engineering or Manufacturing"]] <- c(outliers[grep("oil",outliers, perl = TRUE)],
                                        industry_map[["Engineering or Manufacturing"]])
 
-industry_map[["Engineering or Manufacturing"]]
+# industry_map[["Engineering or Manufacturing"]]
 
 outliers_classified <-c(industry_map[["Engineering or Manufacturing"]],
                         outliers_classified)
@@ -528,7 +527,7 @@ industry_map[["Health care"]] <- c(outliers[grep("health",outliers)],
 outliers_classified <-c(industry_map[["Health care"]],
                         outliers_classified)
 
-industry_map[["Health care"]]
+# industry_map[["Health care"]]
 ```
 
 ### Tech
@@ -715,7 +714,7 @@ industry_map[["Animal Care"]] <- c(outliers[grep("pet",outliers)],
 outliers_classified <-c(industry_map[["Animal Care"]],
                         outliers_classified)
 
-industry_map[["Animal Care"]]
+# industry_map[["Animal Care"]]
 ```
 
 ### Food and Bevarage
@@ -838,7 +837,7 @@ outliers_left <- outliers_table%>%
   filter(!industry %in% outliers_classified)%>%
   group_by(industry)%>%
   summarise(total = n())
-outliers_left
+# outliers_left
 
 ```
 
@@ -897,7 +896,6 @@ ask_a_manager_2021_cleaned <- ask_a_manager_2021_cleaned%>%
                             TRUE ~ gender))
 
 ```
-
 
 ## Save cleaned Data
 
@@ -961,18 +959,17 @@ n_race_sumary
     
 ```
 
-### Single Race Responses
-
+**93.62% of the respondents** selected a single race when filling out the survey.
 
 ```{r single-race}
+### clean the data for race statistics with single race responses.
+
 single_race_data <- n_race_responses%>%
   mutate(multiple_race = case_when(n_race > 1 ~1,
                                    n_race == 1 ~0))%>%
   filter(multiple_race == 0)%>% # only use responses that only put down one race
   mutate(race = as.character(race[1]))%>%
   filter(!is.na(race))
-
-
 
 
 single_race_data <-single_race_data%>%
@@ -988,15 +985,17 @@ single_race_data <-single_race_data%>%
 ### Race Distribtion of the Dataset
 
 ```{r}
-
-ggplot(single_race_data, aes(reorder(race, num_resp_race)))+
-  geom_bar()+
-  coord_flip()+
+single_race_data%>%
+  filter(!is.na(race))%>%
+  group_by(race)%>%
+  summarise(num_resp_race = n())%>%
+  ggplot(aes(x = num_resp_race, y = reorder(race, num_resp_race)))+
+  geom_col(fill = "skyblue")+
   theme_bw()+
-  labs(title = "Race distribution by single race",
-       y = "number of responses"
-       )+
-  theme(axis.title.y = element_blank())
+  labs(title = "Number of Responses By Gender",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", num_resp_race/sum(num_resp_race)*100)), hjust = 0.5)
 
 ```
 
@@ -1016,6 +1015,33 @@ ask_a_manager_2021_cleaned%>%
   geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)
 ```
 
+### Number of Responses by Country
+
+```{r num-res-per-country, fig.cap = "Number of Resp/Country"}
+
+number_resposes_country <- ask_a_manager_2021_cleaned%>%
+  filter(!is.na(country))%>%
+  group_by(country)%>%
+  summarise(num_resp_country = n())%>%
+  arrange(desc(num_resp_country))
+
+number_resposes_country
+
+ask_a_manager_2021_cleaned%>%
+  filter(!is.na(country))%>%
+  group_by(country)%>%
+  summarise(num_resp_country = n())%>%
+  filter(num_resp_country > 50)%>%
+  ggplot(aes(x = num_resp_country, y = reorder(country, num_resp_country)))+
+  geom_col(fill = "skyblue")+
+  theme_bw()+
+  labs(title = "Number of Responses By Country (with more than 50 responses)",
+       x = "number of responses")+
+  theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", num_resp_country/sum(num_resp_country)*100)), hjust = 0.5)
+```
+
+We can see that Data from the United States dominates the dataset.
 
 ### Race distribution from countries with more then 50 responses
 
@@ -1043,6 +1069,8 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
        fill  = "Race Classification")
 ```
 
+The race distribution of the dataset is not representative of the countries population. For example the United States has an African American population of over 13% while in the dataset it below 5%.
+
 ### Gender distribution from countries with more then 50 responses
 
 ```{r}
@@ -1061,10 +1089,14 @@ ask_a_manager_2021_cleaned%>%
   labs(title = "% of Responses By Gender",
        x = "%")+
   theme(axis.title.y = element_blank())+
+  geom_text(aes(label = sprintf("%.2f%%", prc)), hjust = 0.5, size =2)+
   facet_wrap(~country)
+  
 
 
 ```
+
+From the top countries the responses overwhelmingly are from women, execpt the netherlands where the data is very close to balanced.
 
 ## Race by Industry
 
@@ -1090,10 +1122,12 @@ ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_co
   
 ```
 
+As the Race is not representative of the countries real population this graph only informs us of the distribution of the survey respondents across industries and it is more revealing of the blogs reader base rather then industry statistics.
 
 ## By Gender
 
-###Summary Statistics
+\#\#\#Summary Statistics
+
 ```{r}
 #Table giving counts for each gender category dropping those who left the question blank
 ask_a_manager_2021_cleaned %>% 
@@ -1102,6 +1136,7 @@ ask_a_manager_2021_cleaned %>%
 
 #Summary Statistics of Gender and Salary in USD
 ask_a_manager_2021_cleaned %>% 
+  filter(salary_usd != 0)%>%
   group_by(gender) %>%
   drop_na(gender) %>%
   summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
@@ -1118,7 +1153,6 @@ ask_a_manager_2021_cleaned_gender <- ask_a_manager_2021_cleaned %>%
 write.csv(ask_a_manager_2021_cleaned_gender, "test.csv")
 
 ```
-
 
 # Relationships in the Data
 
@@ -1149,10 +1183,9 @@ ggplot(m_race_gender_summary, aes(y = number, x = reorder(n_race, number)))+
 
 ```
 
-If we analyse the respondents that selected more then 1 race that they identify with we can see from the graph that the most prominent age groups are 25-34 and and 35-44 which would mean that Millenials are the most likely identify with multiple race's. And within the Millennial group it seems like women are more likely to do that then men. This shall be evaluated by a hypothesis testing. 
+If we analyse the respondents that selected more then 1 race that they identify with we can see from the graph that the most prominent age groups are 25-34 and and 35-44 which would mean that Millenials are the most likely identify with multiple race's. And within the Millennial group it seems like women are more likely to do that then men. This shall be evaluated by a hypothesis testing.
 
-H0 = Millennial women are  equally likely to identify with multiple races as millennial men.
-H1 = Millennial women are not equally likely to identify with multiple races as millennial men.
+H0 = Millennial women are equally likely to identify with multiple races as millennial men. H1 = Millennial women are not equally likely to identify with multiple races as millennial men.
 
 ```{r millenial-race-test}
 
@@ -1176,13 +1209,14 @@ t.test(mill_men, mill_women)
 
 ```
 
-H0 can be rejected as the t-value is more then 2. 
+H0 can be rejected as the t-value is more then 2.
 
 Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
 
-H0 = The proportion of millennials identifying with multiple races is the same as the proportion of other age groups that identify with multiple races. 
+H0 = The proportion of millennials identifying with multiple races is the same as the proportion of other age groups that identify with multiple races.
 
-H1 = The proportion of millennials identifying with multiple races is not the same as the proportion of other age groups that identify with multiple races. 
+H1 = The proportion of millennials identifying with multiple races is not the same as the proportion of other age groups that identify with multiple races.
+
 ```{r multiple-race-age}
 
 millennial <- subset(n_race_responses, 
@@ -1198,142 +1232,69 @@ t.test(millennial, non_millenial)
 
 
 ```
-The H0 hypothesis can be rejected as t value is above 2. Which means that it can be said with 95% confidence that there is a difference between the proportion of millennials that identify with multiple races and all other age groups. 
 
+The H0 hypothesis can be rejected as t value is above 2. Which means that it can be said with 95% confidence that there is a difference between the proportion of millennials that identify with multiple races and all other age groups.
 
+## What is the most popular industry among the top five countries with the most responses?
 
-1.) Mean salary for US, UK, Canada, Australia, Germany, 
+We would like to see the popularity of the Computing or Tech industry in each country:
 
-##What is the most popular industry among the top five countries with the most responses?
-```{r}
+```{r gender-industry-country, fig.cap="% of Industry and Gender distribution"}
 
 library(infer)
 #we want to work on the top 5 countries with the most data points..
 
-country_codes <- c("USA", "GBR", "AUS", "CAN", "DEU")
-
+top5_country <- c("USA", "GBR","CAN", "AUS" , "DEU")
 
 
 #Industry exploration: gives salary by the selected countries and all industry
 salary_exploration <- ask_a_manager_2021_cleaned %>% 
-  filter(!is.na(salary_usd)) %>%    
-  filter(country_code %in% country_codes) %>% 
-  select(country, country_code, salary_usd, industry) %>% 
-  group_by(country_code)
+  filter(!is.na(salary_usd), !is.na(industry_cleaned), !is.na(gender)) %>%    
+  filter(country_code %in% top5_country) %>% 
+  select(country, country_code, salary_usd, industry_cleaned, gender) %>% 
+  group_by(country,country_code, industry_cleaned, gender)%>%
+  summarise(num_resp = n())%>%
+  group_by(country)%>%
+  mutate(prc = num_resp/sum(num_resp)*100)
+  # group_by(country, industry_cleaned)%>%
+  # mutate(num_resp)
 
-salary_exploration 
+# salary_exploration 
 
 #Choosing the most popular industries in the survey for the designated countries
-industry_count <- salary_exploration %>% 
-  group_by(industry) %>% 
+industry_count <- salary_exploration %>%
+  group_by(industry_cleaned) %>% 
   count() %>% 
   arrange(desc(n))
 industry_count
+
+ggplot(salary_exploration, aes(x = prc, y = reorder(industry_cleaned, prc)))+
+  geom_col(aes(fill = gender))+
+  facet_wrap(~country)+
+  theme_bw()+
+  labs(title = "% of Respondants in Each Industry by Country",
+       x = "%")+
+  theme(axis.title.y = element_blank())
 ```
 
 Overall Computing or Tech is the most popular sector among the 5 chosen countries, followed by Education, Nonprofits...
 
+What we can also see from the graph that most of the blogs male readers are from within the tech industry.
 
-We would like to see the popularity of the Computing or Tech industry in each country:
-
-```{r}
-#for us
-popularity_usa <- salary_exploration %>% 
-  filter(country_code == "USA") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_usa
-```
-
-In the US, the most popular industry is Computing or Tech like the overall population. Since US has the most datapoints, it might have affected the distribution of the popularity of tech overall in global data. 
-
-```{r}
-popularity_uk <- salary_exploration %>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_uk
-```
-
-In the UK, Computing or Tech is the most popular sector among the survey takers as well. And Accounting, Banking & Finance follows. 
-
-
-```{r}
-
-popularity_uk <- salary_exploration %>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_uk
-```
-
-
-
-
-```{r}
-popularity_deu <- salary_exploration %>% 
-  filter(country_code == "DEU") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-
-popularity_deu
-```
-In Germany, the most popular sector is Computing or Tech as well. 
-
-
-
-```{r}
-#for australia
-popularity_aus <- salary_exploration %>% 
-  filter(country_code == "AUS") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-popularity_aus
-```
-Computing or Tech is the most popular sector in Australia as well!
-
-
-```{r}
-popularity_can <- salary_exploration %>% 
-  filter(country_code == "CAN") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(!is.na(industry)) %>% 
-  group_by(industry) %>% 
-  count() %>% 
-  arrange(desc(n))
-popularity_can
-```
-
-Tech is the most popular sector in Canada too. 
-
+In the US, the most popular industry is Computing or Tech like the overall population. Since US has the most datapoints, it might have affected the distribution of the popularity of tech overall in global data, but this does not seem to be the case.
 
 In every single country on our country list, tech is the most popular industry. Now, we would like to see the mean and median tech salary by each country. That's why, it is reasonable to focus on the Tech sector.
 
-
 Boxplot of Computing or Tech salaries across USA, Australia, Germany, UK, Canada
-```{r}
-tech_salary_boxplot_data <- salary_exploration %>%
-  filter(industry =="Computing or Tech")
 
-tech_salary_boxplot <- ggplot(data = tech_salary_boxplot_data, aes(x = salary_usd, y=fct_reorder(country, salary_usd))) +
+```{r}
+tech_salary_boxplot_data <- ask_a_manager_2021_cleaned %>%
+  filter(industry_cleaned =="Computing or Tech")%>%
+  filter(country_code %in% top5_country)%>%
+  group_by(country)%>%
+  mutate(max_salary = max(salary_usd))
+
+tech_salary_boxplot <- ggplot(tech_salary_boxplot_data, aes(x = salary_usd, y = reorder(country, salary_usd))) +
   geom_boxplot() +
   labs( title= " Tech salaries across USA, Australia, Germany, UK, Canada",
         x="Salary (USD)",
@@ -1341,14 +1302,15 @@ tech_salary_boxplot <- ggplot(data = tech_salary_boxplot_data, aes(x = salary_us
 
 tech_salary_boxplot
 ```
-According to the box plot, USA has the highest mean Computing and Tech Salary. USA also has high variability, since it is known as the tech hub of the world which leads to some salaries being extremely high. 
+
+According to the box plot, USA has the highest mean Computing and Tech Salary. USA also has high variability, since it is known as the tech hub of the world which leads to some salaries being extremely high.
 
 ```{r}
 
 mean_median_tech_salary_by_country <- ask_a_manager_2021_cleaned %>% 
   filter(!is.na(salary_usd)) %>% 
-  filter(country_code  %in% country_codes ) %>% 
-  filter(industry == "Computing or Tech") %>% 
+  filter(country_code  %in% top5_country ) %>% 
+  filter(industry_cleaned == "Computing or Tech") %>% 
   group_by(country_code) %>% 
   summarise(mean_tech_salary = mean(salary_usd),
             median_tech_salary = median(salary_usd)) %>% 
@@ -1359,340 +1321,296 @@ mean_median_tech_salary_by_country
 
 
 ```
-USA has more mean and median tech salary, followed by Australia and Germany and UK.
+
+### Confidence interval of Median Salaries
 
 ```{r}
+
 set.seed(123)
 
+median_ci_median_tech <- data.frame(matrix(ncol = 4,nrow = 0))
 
-#####CI for USA Mean Salary
+colnames(median_ci_median_tech)<-c("country","lower_ci", "upper_ci","median")
 
-#confidence interval bootstrap
-boot_dist_usa <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "USA") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-boot_dist_usa
+median_ci_median_tech$country <- as.character(median_ci_median_tech$country)
 
-
-
-percentile_ci_usa2 <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") 
-#for visualisation
-
-
-#CI and mean table
-percentile_ci_usa <- get_ci(boot_dist_usa , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "USA",
-         mean = mean_median_tech_salary_by_country[[1,2]]) %>% 
-  relocate(country_code)
-
-
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_usa ) +
-  shade_ci(endpoints = percentile_ci_usa2, fill="khaki")
-```
-
-```{r}
-#####CI for Germany Salary
-
-#confidence interval bootstrap
-boot_dist_deu <-ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "DEU") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
-boot_dist_deu
-
-#Creating the CI table with the country code
-percentile_ci_deu <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "DEU",
-         mean = mean_median_tech_salary_by_country[[3,2]]) %>% 
-  relocate(country_code)
-percentile_ci_deu
-
-
-percentile_ci_deu2 <- get_ci(boot_dist_deu , level = 0.95, type ="percentile") #for visualisation
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_deu) +
-  shade_ci(endpoints = percentile_ci_deu2, fill="khaki")
-
-```
-
-
-```{r}
-######CI for Australia Salary
-
-#confidence interval bootstrap
-boot_dist_aus <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "AUS") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
-
-#creating the CI table with country code
-percentile_ci_aus <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "AUS",
-         mean = mean_median_tech_salary_by_country[[2,2]]) %>% 
-  relocate(country_code) 
-
-percentile_ci_aus2 <- get_ci(boot_dist_aus , level = 0.95, type ="percentile") #for visualisation
-
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_aus) +
-  shade_ci(endpoints = percentile_ci_aus2, fill="khaki")
-
-
-```
-
-
-
-```{r}
-####CI for UK
-  
-  boot_dist_gbr <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "GBR") %>% 
-  filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
-  specify(response = salary_usd) %>%
-  # Generate bootstrap samples
-  generate(reps = 1000, type = "bootstrap") %>%
-  # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-  
-  
-#creating the CI table with country code
-percentile_ci_gbr <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "GBR",
-         mean = mean( mean_median_tech_salary_by_country[[4,2]])) %>% 
-  relocate(country_code)
-
- percentile_ci_gbr2 <- get_ci(boot_dist_gbr , level = 0.95, type ="percentile") #for visualisation
- 
-#visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_gbr) +
-  shade_ci(endpoints = percentile_ci_gbr2, fill="khaki")
-
-  
-```
-
-```{r}
-
-#####CI for Canada Salary
-  
+for(i in top5_country)
+{
   #confidence interval bootstrap
-boot_dist_can <- ask_a_manager_2021_cleaned%>% 
-  filter(country_code == "CAN") %>%   
+median_tech_country <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == i) %>%   
   filter(!is.na(salary_usd)) %>% 
-  filter(industry == "Computing or Tech") %>% 
+  filter(industry_cleaned == "Computing or Tech") %>%
+  group_by(country)%>%
+  summarise(median = median(salary_usd))
+
+boot_dist <- ask_a_manager_2021_cleaned%>% 
+  filter(country_code == i) %>%   
+  filter(!is.na(salary_usd)) %>% 
+  filter(industry_cleaned == "Computing or Tech") %>% 
   specify(response = salary_usd) %>%
   # Generate bootstrap samples
   generate(reps = 1000, type = "bootstrap") %>%
   # Calculate mean of each bootstrap sample
-  calculate(stat = "mean")
-
+  calculate(stat = "median")
 
 #creating the CI table with country code
-percentile_ci_can <- get_ci(boot_dist_can , level = 0.95, type ="percentile") %>% 
-  mutate(country_code = "CAN",
-         mean = mean_median_tech_salary_by_country[[5,2]]) %>% 
-  relocate(country_code)
+median_ci <- get_ci(boot_dist , level = 0.95, type ="percentile")
 
-percentile_ci_can2 <- get_ci(boot_dist_can , level = 0.95, type ="percentile") #for visualisation
+median_ci_median_tech <- median_ci_median_tech%>%
+  add_row(country = i,
+         lower_ci = median_ci$lower_ci,
+         upper_ci = median_ci$upper_ci,
+         median = median_tech_country$median)
 
 #visualisation of the resulting bootstrap distribution and the CIs
-  visualize(boot_dist_can) +
-  shade_ci(endpoints = percentile_ci_can2, fill="khaki")
-  
-  
-#Merged table of CIs and means..
-merged_table <- rbind(percentile_ci_usa, percentile_ci_deu) 
-merged_table <- rbind(merged_table, percentile_ci_aus) 
-merged_table <- rbind(merged_table, percentile_ci_gbr) 
-merged_table <- rbind(merged_table, percentile_ci_can)
-merged_table
+fig<-  visualize(boot_dist) +
+  shade_ci(endpoints = median_ci, fill="khaki")+
+  labs(title = sprintf("Simulation of Bootstrap Distribution for Median %s",i))
+
+plot(fig)
+}
+
 ```
 
+### Confidence interval of the Mean Salaries
+
+```{r}
+
+mean_conf_country_tech <- ask_a_manager_2021_cleaned%>%
+  filter(industry_cleaned == "Computing or Tech",
+         !is.na(salary_usd))%>%
+  filter(country_code %in% top5_country)%>%
+  group_by(country)%>%
+  summarise(mean_salary = mean(salary_usd, na.rm=TRUE),
+            n_salary = n(),
+            sd_salary = sd(salary_usd, na.rm = TRUE),
+            se_salary = sd_salary/sqrt(n_salary),
+            t_critical = qt(0.975, n_salary - 1),
+            salary_lower = mean_salary - t_critical*se_salary,
+            salary_upper = mean_salary + t_critical*se_salary)
+
+```
 
 ```{r}
 
 #Graph of CIs:
- graph <- ggplot(merged_table, aes(colour = country_code)) +
-  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= reorder(country_code, mean)), width = 0.1, size = 1.5)  +
-  geom_point(aes(x=mean, y=reorder(country_code, mean)), size = 3 ) +
+ graph <- ggplot(mean_conf_country_tech, aes(colour = country)) +
+  geom_errorbar(aes(xmin = salary_lower, xmax = salary_upper, y= reorder(country, mean_salary)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=mean_salary, y=reorder(country, mean_salary)), size = 3 ) +
   labs(title="Confidence Intervals of Mean Salary by Country in Computing and Tech Industry",
        subtitle="95% confidence intervals",
        x="Mean Salary (USD)",
        y =" ") +
   theme_bw() +
-    geom_text(aes(label = round(mean,0), round(mean,0), y=country_code), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
+    geom_text(aes(label =format(round(mean_salary,0), big.mark = ","), x = round(mean_salary,0), y=country), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
+
+graph
+
+# Median CI
+graph <- ggplot(median_ci_median_tech, aes(colour = country)) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= reorder(country, median)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=median, y=reorder(country, median)), size = 3 ) +
+  labs(title="Confidence Intervals of Median Salary by Country in Computing and Tech Industry",
+       subtitle="95% confidence intervals",
+       x="Median Salary (USD)",
+       y =" ") +
+  theme_bw() +
+    geom_text(aes(label =format(round(median,0), big.mark = ","), x = round(median,0), y=country), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)
+
+graph
+
+
+```
+
+We created this graph in order to have an overall understanding of the selected countries' mean salaries in tech and the confidence intervals of their mean. Because USA has more data points, its confidence interval is narrower.
+
+There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries.
+
+According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing.
+
+H0: There's no difference between the salaries of US and Germany in the Computing and Tech industry. H1: There's a difference between the salaries of US and Germany in the Computing and Tech industry.
+
+Use the infer package for hypothesis testing:
+
+```{r}
+
+tech_usa_aus <- ask_a_manager_2021_cleaned %>% 
+  filter( country_code %in% c("AUS" , "USA")) %>%   
+  filter(!is.na(salary_usd), industry_cleaned == "Computing or Tech")
+
+t.test(salary_usd ~ country_code, tech_usa_aus)
+
+```
+
+According to the hypothesis testing, we can reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia.
+
+So, since USA dominates the Tech industry, we would like to analyse the factors that affect the tech salary like income and years of of experience at work.
+
+Conclusion: US is the place to be for Tech!
+
+## Salary and Gender relationship in Tech Industry
+
+Let us analyse the tech industry further. The countries where the analyses should be conducted are the United States, Canada and the UK  figure \@ref(fig:num-res-per-country) which shows USA, Canda and UH have the highest samples within the dataset. Referring to the figure \ref@(fig:gender-industry-country) we can see that the Tech industry has the most balanced gender data across all countries in the dataset.
+
+Based on this knowledge let us compare the mean and median salaries of man and women within the industry.
+
+```{r}
+
+salary_in_tech_by_gender_tech <- ask_a_manager_2021_cleaned %>% 
+  filter(industry_cleaned == "Computing or Tech") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
+
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_tech)
+```
+
+There is a significant difference in the mean salaries of men and woman in the US in the Computing/Tech industry. Tech industry and analytical roles have been dominated by males in the past century. That's why, males might have had the opportunity to get promoted and receive higher salaries. People with high paying roles tend to have 30+ of experience, and there are not many women in tech that have that much experience.
+
+### Median Confidence Interval
+```{r}
+
+set.seed(123)
+
+median_ci_median_tech_gender <- data.frame(matrix(ncol = 5,nrow = 0))
+
+colnames(median_ci_median_tech_gender)<-c("country","gender","lower_ci", "upper_ci","median")
+
+median_ci_median_tech_gender$country <- as.character(median_ci_median_tech_gender$country)
+median_ci_median_tech_gender$gender <- as.character(median_ci_median_tech_gender$gender)
+
+for(i in top5_country[1:3])
+{
+  for(g in c("Man","Woman"))
+    
+   { #confidence interval bootstrap
+  median_tech_country <- ask_a_manager_2021_cleaned%>% 
+    filter(country_code == i, gender == g) %>%   
+    filter(!is.na(salary_usd)) %>% 
+    filter(industry_cleaned == "Computing or Tech") %>%
+    group_by(country)%>%
+    summarise(median = median(salary_usd))
+  
+  boot_dist <- ask_a_manager_2021_cleaned%>% 
+    filter(country_code == i, gender == g) %>%   
+    filter(!is.na(salary_usd)) %>% 
+    filter(industry_cleaned == "Computing or Tech") %>% 
+    specify(response = salary_usd) %>%
+    # Generate bootstrap samples
+    generate(reps = 1000, type = "bootstrap") %>%
+    # Calculate mean of each bootstrap sample
+    calculate(stat = "median")
+  
+  #creating the CI table with country code
+  median_ci <- get_ci(boot_dist , level = 0.95, type ="percentile")
+  
+  median_ci_median_tech_gender <- median_ci_median_tech_gender%>%
+    add_row(country = i,
+            gender = g,
+           lower_ci = median_ci$lower_ci,
+           upper_ci = median_ci$upper_ci,
+           median = median_tech_country$median)
+  
+  #visualisation of the resulting bootstrap distribution and the CIs
+  fig<-  visualize(boot_dist) +
+    shade_ci(endpoints = median_ci, fill="khaki")+
+    labs(title = sprintf("Simulation of Bootstrap Distribution for Median %s",i))
+  
+  plot(fig)}
+}
+
+
+
+
+# Median CI
+graph <- ggplot(median_ci_median_tech_gender, aes(colour = gender)) +
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci, y= reorder(gender, median)), width = 0.1, size = 1.5)  +
+  geom_point(aes(x=median, y=reorder(gender, median)), size = 3 ) +
+  labs(title="Confidence Intervals of Median Salary by Country in Computing and Tech Industry",
+       subtitle="95% confidence intervals",
+       x="Median Salary (USD)",
+       y =" ") +
+  theme_bw() +
+    geom_text(aes(label =format(round(median,0), big.mark = ","), x = round(median,0), y=gender), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)+
+  facet_wrap(~country)
 
 graph
 
 ```
 
 
-We created this graph in order to have an overall understanding of the selected countries' mean salaries in tech and the confidence intervals of their mean. Because USA has more data points, its confidence interval is narrower. 
-
-
-According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing. 
-
-H0: There's no difference between the salaries of US and Germany in the Computing and Tech industry.
-H1: There's a difference between the salaries of US and Germany in the Computing and Tech industry.
-
-
-Use the infer package for hypothesis testing: 
-
 ```{r}
 
-tech_usa_aus <- salary_exploration %>% 
-  filter(country_code %in% c("AUS" , "USA")) %>%   
-  filter(!is.na(salary_usd)) 
+set.seed(123)
+
+for(c in top5_country[1:3])
+{
+diff_prop <- ask_a_manager_2021_cleaned %>% 
+  filter(industry_cleaned == "Computing or Tech") %>% 
+  filter(country_code == c) %>% 
+  filter(gender %in% c("Man", "Woman"))%>%
+  specify(salary_usd ~ gender) %>% 
+  calculate("diff in medians", 
+            order = c("Man", "Woman"))
+diff_prop
 
 
- null_dist <- tech_usa_aus %>%
-  # specify variables
-  specify(salary_usd  ~  country_code)  %>%
+salary_median_tech_null <- ask_a_manager_2021_cleaned %>% 
+  filter(industry_cleaned == "Computing or Tech") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))%>%
   
-  # assume independence, i.e, there is no difference
-  hypothesize(null = "independence") %>%
+  specify(salary_usd ~ gender) %>%
   
-  # generate 1000 reps, of type "permute"
-  generate(reps = 1000, type = "permute") %>%
+  hypothesise(null = "independence")%>%
   
-  # calculate statistic of difference, namely "diff in means"
-  calculate(stat = "diff in means", order = c( "USA","AUS"))
+  generate(reps = 5000, type = "permute" )%>%
+  
+  calculate("diff in medians", order= c("Man", "Woman"))
 
 
-ggplot(data = null_dist, aes(x = stat)) +
-  geom_histogram()
+fig <-salary_median_tech_null%>%
+  visualise()+
+  geom_vline(xintercept = diff_prop$stat, color = "#FF4136", size = 1) +
+  labs(x = "Difference in median proportion\n(Man − Women in Tech)",
+       y = "Count",
+       subtitle = sprintf("Red line shows observed difference in median proportions for country: %s",c )) +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
 
-obs_diff <- tech_usa_aus %>%
-  specify(salary_usd  ~  country_code) %>%
-  calculate(stat = "diff in means", order = c( "USA", "AUS"))
-
-
-null_dist %>% visualize() +
-  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
-
-
+plot(fig)
+}
 ```
 
-According to the hypothesis testing, we can reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia. 
+We observe statitically significant differences within the tech industry between the median salary of men and women. 
 
-
-
-So, since USA dominates the Tech industry, we would like to analyse the factors that affect the tech salary like income and years of of experience at work.  
-
-Conclusion: US is the place to be for Tech! 
-
-##Factors that affet tech salaries in the US 
-
+## Salary and Gender Relationship in other industries
 
 ```{r}
+salary_in_tech_by_gender_hc <- ask_a_manager_2021_cleaned %>% 
+  filter(industry_cleaned == "Health care") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
 
-
-
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_hc )
 ```
 
-
-Education High Salaries
-Experience High Salaries
-
-What is more important? 
-
-
+It is very interesting that there is not a significant difference in the mean salaries of men and women in the health care industry! So we fail to reject the null hypothesis. This makes sense since health care is a more traditional profession, so the percentage of women in health care is higher than the percentage of women in tech. This brings up questions on whether or not different industries pay different genders differently!
 
 ```{r}
-industry_race_top5 <- industry_race%>%
-  pivot_wider(id_cols = 1, names_from = race, values_from = 3)%>%
-  replace(is.na(.), 0)%>%
-  mutate(industry_total = rowSums(across(where(is.numeric))))%>%
-  arrange(desc(industry_total))%>%
-  head(5)%>%
-  pivot_longer(cols = 2:7, names_to = "race")%>%
-  group_by(industry_cleaned)%>%
-  mutate(prc = round(value/sum(value)*100, 2))
-  
+salary_in_tech_by_gender_bank <- ask_a_manager_2021_cleaned %>% 
+  filter(industry_cleaned == "Accounting, Banking & Finance") %>% 
+  filter(country_code == "USA") %>% 
+  filter(gender %in% c("Man", "Woman"))
 
-  
-ggplot(industry_race_top5, aes(y = reorder(industry_cleaned, value), x = value, fill = race ))+
-  geom_col()+
-  labs(title = "Race distribution within top 5 Industries",
-       x = "Number of Respondants",
-       y = "Industry Classification")+
-  theme_bw()
-  # geom_text(aes(label = sprintf("%.2f%%",prc)), position = position_stack(vjust = 0.5))  geom_text(aes(l
+t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_bank )
 ```
 
-## Relationship between Salary and Gender
+In the Accounting, Banking & Finance industry, there is still a significant difference between the mean salaries of women and men. This is not suprising since the finance and banking industry has been dominated by males for a century.
 
-###Plots with experience and salary
-```{r}
-ggplot(ask_a_manager_2021_cleaned_gender, aes(x=gender, y=salary_usd))+
-  geom_boxplot()+
-  scale_y_log10()+
-  labs(title= "Salary in USD by Gender", x="Gender", y="Salary in USD")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
-  NULL
-```
+# Linear Model
 
-Now, we would like to focus on Computing or Tech salaries in the US by gender. 
-
-
-```{r}
-ggplot(ask_a_manager_2021_cleaned_gender, aes(x=overall_years_of_professional_experience, y=salary_usd,color=gender))+
-  geom_boxplot()+
-  scale_y_log10()+
-  facet_wrap(~gender)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
-  labs(title= "Salary in USD by Gender and Total Years of Experience", x="Total Years of Experience", y="Salary in USD")+
-  NULL
-  
-ggplot(ask_a_manager_2021_cleaned_gender, aes(x=years_of_experience_in_field, y=salary_usd,color=gender))+
-  geom_boxplot()+
-  scale_y_log10()+
-  facet_wrap(~gender)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
-  labs(title= "Salary in USD by Gender and Years of Experience in Field", x="Years of Experience in   Field", y="Salary in USD")+
-  NULL
-```
-
-###Plots with education and salary
-```{r}
-ggplot(ask_a_manager_2021_cleaned_gender, aes(x=highest_level_of_education_completed, y=salary_usd, color=gender))+
-  geom_boxplot()+
-  scale_y_log10()+
-  facet_wrap(~gender)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 20, hjust = 0.8))+
-  labs(title= "Salary in USD by Gender and Education Level", x="Education Level", y="Salary in USD")+
-  NULL
-```
-
-
-
-
-#Linear Model
 ```{r}
 
 names(ask_a_manager_2021_cleaned_gender)
@@ -1735,8 +1653,9 @@ ask_a_manager_2021_cleaned_gender_country %>%
 
 ```
 
-The linear model is not the best approach to generate insights from this data. After breaking the data up into different groups and trying to explore the variables, we concluded that there isn't a very strong linear model in the data. We could have filtered the data more in order to create a more linear model, but the more we filter the data the less people would be included. Our linear model, wıth an R squared of about 0.25 includes only __% of the data and we felt it wouldn't be helpful to reduce the model more. Because of this we believe it will be more beneficial to explain the data using graphs and hypothesis tests. 
+The linear model is not the best approach to generate insights from this data. After breaking the data up into different groups and trying to explore the variables, we concluded that there isn't a very strong linear model in the data. We could have filtered the data more in order to create a more linear model, but the more we filter the data the less people would be included. Our linear model, wıth an R squared of about 0.25 includes only \_\_% of the data and we felt it wouldn't be helpful to reduce the model more. Because of this we believe it will be more beneficial to explain the data using graphs and hypothesis tests.
 
+# Mapping Salaries to US States
 
 ```{r}
 #loading the libraries
@@ -1766,6 +1685,7 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
   theme(panel.background=element_blank(), legend.position = "right")
 
 ```
+
 ```{r}
 #TECH MAP
 
@@ -1798,8 +1718,7 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 
 ```
 
-
-Let's look at the health care industry in US. It is in the top 5 popular industries in the US and it is very different from tech. So it may be interesting to see median salary in this industry. 
+Let's look at the health care industry in US. It is in the top 5 popular industries in the US and it is very different from tech. So it may be interesting to see median salary in this industry.
 
 ```{r}
 #loading the libraries
@@ -1830,6 +1749,7 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
   theme(panel.background=element_blank(), legend.position = "right")
 
 ```
+
 How about Accounting, Banking and Finance?
 
 ```{r}
@@ -1862,57 +1782,6 @@ plot_usmap(regions = "state", data = usmap_df, values = "median_salary") +
 
 ```
 
-
-```{r}
-
-ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
-  filter(country == "United States") %>% 
-  filter(industry == "Computing or Tech") 
-
-ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
-                          data=ask_a_manager_2021_lm )
-
-ask_lm %>% 
-  get_regression_table()
-
-ask_lm %>% 
-  get_regression_summaries()
-
-```
-
-
-The regression isn't so great since almost all of the variables are categorical, so we want to conclude more hypothesis testings to produce more insights about the data. 
-
-```{r}
-
-salary_in_tech_by_gender_tech <- ask_a_manager_2021_cleaned %>% 
-  filter(industry == "Computing or Tech") %>% 
-  filter(country_code == "USA") %>% 
-  filter(gender %in% c("Man", "Woman"))
-
-t.test(salary_usd ~ gender, data = salary_in_tech_by_gender)
-```
-There is a significant difference in the mean salaries of men and woman in the US in the Computing/Tech industry. Tech industry and analytical roles have been dominated by males in the past century. That's why, males might have had the opportunity to get promoted and receive higher salaries. People with high paying roles tend to have 30+ of experience, and there are not many women in tech that have that much experience. 
-```{r}
-salary_in_tech_by_gender_hc <- ask_a_manager_2021_cleaned %>% 
-  filter(industry == "Health care") %>% 
-  filter(country_code == "USA") %>% 
-  filter(gender %in% c("Man", "Woman"))
-
-t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_hc )
-```
-It is very interesting that there is not a significant difference in the mean salaries of men and women in the health care industry! So we fail to reject the null hypothesis. This makes sense since health care is a more traditional profession, so the percentage of women in health care is higher than the percentage of women in tech. This brings up questions on whether or not different industries pay different genders differently! 
-
-
-```{r}
-salary_in_tech_by_gender_bank <- ask_a_manager_2021_cleaned %>% 
-  filter(industry == "Accounting, Banking & Finance") %>% 
-  filter(country_code == "USA") %>% 
-  filter(gender %in% c("Man", "Woman"))
-
-t.test(salary_usd ~ gender, data = salary_in_tech_by_gender_bank )
-```
-
-In the Accounting, Banking & Finance industry, there is still a significant difference between the mean salaries of women and men. This is not suprising since the finance and banking industry has been dominated by males for a century. 
+The regression isn't so great since almost all of the variables are categorical, so we want to conclude more hypothesis testings to produce more insights about the data.
 
 
