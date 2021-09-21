@@ -5,7 +5,7 @@ title: "Final Assignment"
 
 date: "`r Sys.Date()`"
 output:
-  html_document:
+  bookdown::html_document2:
     theme: flatly
     highlight: zenburn
     number_sections: yes
@@ -13,6 +13,7 @@ output:
     toc_float: yes
     code_folding: show
     df_print: paged
+    rows.print: 25
 ---
 
 ```{r , echo=FALSE}
@@ -28,9 +29,10 @@ options(digits = 3)
 
 # default figure size
 knitr::opts_chunk$set(
-  fig.width=6.75, 
-  fig.height=6.75,
-  fig.align = "center"
+  fig.width=7, 
+  fig.height=7,
+  fig.align = "center",
+  rows.print = 15
 )
 ```
 
@@ -885,7 +887,7 @@ labR_classifications <- unique(occupation_classification$preferredLabel)
 
 ```
 
-##  {.unnumbered}
+## {.unlisted .unnumbered}
 
 ## Clean Gender
 
@@ -914,7 +916,7 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 
 # Dataset Overview Statistics
 
-### Number of responses with each number of Races
+## Number of responses with each number of Races
 
 ```{r race-multiple-resp}
 
@@ -982,7 +984,7 @@ single_race_data <-single_race_data%>%
 
 ```
 
-### Race Distribtion of the Dataset
+## Race Distribtion of the Dataset
 
 ```{r}
 single_race_data%>%
@@ -999,7 +1001,7 @@ single_race_data%>%
 
 ```
 
-### Number of Responses by Gender
+## Number of Responses by Gender
 
 ```{r}
 ask_a_manager_2021_cleaned%>%
@@ -1015,17 +1017,15 @@ ask_a_manager_2021_cleaned%>%
   geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)
 ```
 
-### Number of Responses by Country
+## Number of Responses by Country
 
-```{r num-res-per-country, fig.cap = "Number of Resp/Country"}
-
+```{r num-res-per-country, fig.cap = "Number of Resp/Country(ref:foo)"}
 number_resposes_country <- ask_a_manager_2021_cleaned%>%
   filter(!is.na(country))%>%
   group_by(country)%>%
   summarise(num_resp_country = n())%>%
   arrange(desc(num_resp_country))
 
-number_resposes_country
 
 ask_a_manager_2021_cleaned%>%
   filter(!is.na(country))%>%
@@ -1043,7 +1043,7 @@ ask_a_manager_2021_cleaned%>%
 
 We can see that Data from the United States dominates the dataset.
 
-### Race distribution from countries with more then 50 responses
+## Race distribution from countries with more then 50 responses
 
 ```{r race-distribution}
 
@@ -1063,7 +1063,9 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
   geom_col( aes(fill = race))+
   facet_wrap(~country)+
   theme(axis.title.y = element_blank(),
-        plot.title = element_text())+
+        plot.title = element_text(),
+        axis.text.y = element_blank(),
+        legend.position = "bottom")+
   labs(title = "Population Distribution in Countries with more then 50 respondants",
        x = "% of Respondents",
        fill  = "Race Classification")
@@ -1071,7 +1073,7 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
 
 The race distribution of the dataset is not representative of the countries population. For example the United States has an African American population of over 13% while in the dataset it below 5%.
 
-### Gender distribution from countries with more then 50 responses
+## Gender distribution from countries with more then 50 responses
 
 ```{r}
 
@@ -1118,15 +1120,15 @@ ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_co
   labs(title = "Race distribution within Industries",
        x = "Number of Respondants",
        y = "Industry Classification")+
-  theme_bw()
+  theme_bw()+
+  theme(legend.position = "bottom",
+        axis.title.y = element_blank())
   
 ```
 
 As the Race is not representative of the countries real population this graph only informs us of the distribution of the survey respondents across industries and it is more revealing of the blogs reader base rather then industry statistics.
 
-## By Gender
-
-\#\#\#Summary Statistics
+## By Gender Statistics
 
 ```{r}
 #Table giving counts for each gender category dropping those who left the question blank
@@ -1177,8 +1179,8 @@ ggplot(m_race_gender_summary, aes(y = number, x = reorder(n_race, number)))+
   theme_bw()+
   labs(
     title = "Number of Race's a person identifies with by Age and Gender",
-    y = "Number of Race options ticked by Respondant",
-    x = "Number of Respondants"
+    x = "Number of Race options ticked by Respondant",
+    y = "Number of Respondants"
   )
 
 ```
@@ -1197,19 +1199,19 @@ mill_men <- subset(n_race_responses,
                    (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Man",
                    select = c(multiple_race))
 
-mill_men
+# mill_men
 
 mill_women <- subset(n_race_responses, 
                    (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Woman",
                    select = c(multiple_race))
 
-mill_women
+# mill_women
 
 t.test(mill_men, mill_women)
 
 ```
 
-H0 can be rejected as the t-value is more then 2.
+H0 cannot as p-value is above 0.05. Which means there is no difference in the likelihood of identifying with multiple ethnic bakcgrounds between millenial men and women. 
 
 Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
 
@@ -1274,7 +1276,8 @@ ggplot(salary_exploration, aes(x = prc, y = reorder(industry_cleaned, prc)))+
   theme_bw()+
   labs(title = "% of Respondants in Each Industry by Country",
        x = "%")+
-  theme(axis.title.y = element_blank())
+  theme(axis.title.y = element_blank(),
+        legend.position = "bottom")
 ```
 
 Overall Computing or Tech is the most popular sector among the 5 chosen countries, followed by Education, Nonprofits...
@@ -1427,7 +1430,7 @@ We created this graph in order to have an overall understanding of the selected 
 
 There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries.
 
-According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing.
+According to the graph, USA and Australia are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Australia? In order to proceed, we will conduct hypothesis testing.
 
 H0: There's no difference between the salaries of US and Germany in the Computing and Tech industry. H1: There's a difference between the salaries of US and Germany in the Computing and Tech industry.
 
@@ -1443,7 +1446,9 @@ t.test(salary_usd ~ country_code, tech_usa_aus)
 
 ```
 
-According to the hypothesis testing, we can reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia.
+According to the hypothesis testing, we cannot reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia.
+
+However there is a clear difference in median salaries between the countries where the USA is a clear leader.
 
 So, since USA dominates the Tech industry, we would like to analyse the factors that affect the tech salary like income and years of of experience at work.
 
@@ -1451,10 +1456,11 @@ Conclusion: US is the place to be for Tech!
 
 ## Salary and Gender relationship in Tech Industry
 
-Let us analyse the tech industry further. The countries where the analyses should be conducted are the United States, Canada and the UK  figure \@ref(fig:num-res-per-country) which shows USA, Canda and UH have the highest samples within the dataset. Referring to the figure \ref@(fig:gender-industry-country) we can see that the Tech industry has the most balanced gender data across all countries in the dataset.
+Let us analyse the tech industry further. The countries where the analyses should be conducted are the United States, Canada and the UK  figure \@ref(fig:num-res-per-country) which shows USA, Canda and UK have the highest samples within the dataset. Referring to the figure \@ref(fig:gender-industry-country) we can see that the Tech industry has the most balanced gender data across all countries in the dataset.
 
 Based on this knowledge let us compare the mean and median salaries of man and women within the industry.
 
+### Mean Salary in tech Man and Woman t-test
 ```{r}
 
 salary_in_tech_by_gender_tech <- ask_a_manager_2021_cleaned %>% 
@@ -1532,10 +1538,11 @@ graph <- ggplot(median_ci_median_tech_gender, aes(colour = gender)) +
        y =" ") +
   theme_bw() +
     geom_text(aes(label =format(round(median,0), big.mark = ","), x = round(median,0), y=gender), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)+
-  facet_wrap(~country)
-
+  facet_wrap(~country)+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 20, hjust = 0.7))+
+  scale_x_continuous(labels = function(median) sprintf("%s$",format(median, big.mark = ",")))
 graph
-
 ```
 
 
@@ -1612,44 +1619,22 @@ In the Accounting, Banking & Finance industry, there is still a significant diff
 # Linear Model
 
 ```{r}
+ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
+   filter(country == "United States") %>% 
+   filter(industry == "Computing or Tech") 
 
-names(ask_a_manager_2021_cleaned_gender)
-ask_lm <- lm(salary_usd ~ country ,
-             data=ask_a_manager_2021_cleaned_gender, )
+ ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
+                           data=ask_a_manager_2021_lm )
 
-ask_lm %>% 
-  get_regression_table()
+reg_table<- ask_lm %>% 
+   get_regression_table()
 
-ask_lm %>% 
-  get_regression_summaries()
+reg_summary <- ask_lm %>% 
+   get_regression_summaries()
 
-ask_a_manager_2021_cleaned_gender_country <- ask_a_manager_2021_cleaned_gender %>% 
-  filter(country == "United States")
-
-ask_lm <- lm(salary_usd ~ gender +
-               race + 
-               overall_years_of_professional_experience + 
-               how_old_are_you + industry + 
-               highest_level_of_education_completed,
-               data=ask_a_manager_2021_cleaned_gender_country )
-
-ask_lm %>% 
-  get_regression_table()
-
-ask_lm %>% 
-  get_regression_summaries()
-
-#Summary Stats of Salary by Gender in the USA
-ask_a_manager_2021_cleaned_gender_country %>% 
-  group_by(gender) %>%
-  drop_na(gender) %>%
-  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
-            MedianSalary=median(salary_usd, na.rm=T), 
-            sdsalary= sd(salary_usd, na.rm=TRUE), 
-            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
-            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
-            minsalary=min(salary_usd, na.rm=T),
-            maxsalary=max(salary_usd, na.rm=T)) 
+ 
+reg_table
+reg_summary
 
 ```
 
