@@ -5,7 +5,7 @@ title: "Final Assignment"
 
 date: "`r Sys.Date()`"
 output:
-  html_document:
+  bookdown::html_document2:
     theme: flatly
     highlight: zenburn
     number_sections: yes
@@ -13,6 +13,7 @@ output:
     toc_float: yes
     code_folding: show
     df_print: paged
+    rows.print: 25
 ---
 
 ```{r , echo=FALSE}
@@ -28,9 +29,10 @@ options(digits = 3)
 
 # default figure size
 knitr::opts_chunk$set(
-  fig.width=6.75, 
-  fig.height=6.75,
-  fig.align = "center"
+  fig.width=7, 
+  fig.height=7,
+  fig.align = "center",
+  rows.print = 15
 )
 ```
 
@@ -1017,15 +1019,13 @@ ask_a_manager_2021_cleaned%>%
 
 ## Number of Responses by Country
 
-```{r num-res-per-country, fig.cap = "Number of Resp/Country"}
-
+```{r num-res-per-country, fig.cap = "Number of Resp/Country(ref:foo)"}
 number_resposes_country <- ask_a_manager_2021_cleaned%>%
   filter(!is.na(country))%>%
   group_by(country)%>%
   summarise(num_resp_country = n())%>%
   arrange(desc(num_resp_country))
 
-number_resposes_country
 
 ask_a_manager_2021_cleaned%>%
   filter(!is.na(country))%>%
@@ -1199,13 +1199,13 @@ mill_men <- subset(n_race_responses,
                    (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Man",
                    select = c(multiple_race))
 
-mill_men
+# mill_men
 
 mill_women <- subset(n_race_responses, 
                    (n_race_responses$how_old_are_you == "25-34" || n_race_responses$how_old_are_you == "35-44") & n_race_responses$gender == "Woman",
                    select = c(multiple_race))
 
-mill_women
+# mill_women
 
 t.test(mill_men, mill_women)
 
@@ -1456,7 +1456,7 @@ Conclusion: US is the place to be for Tech!
 
 ## Salary and Gender relationship in Tech Industry
 
-Let us analyse the tech industry further. The countries where the analyses should be conducted are the United States, Canada and the UK  figure \@ref(fig:num-res-per-country) which shows USA, Canda and UH have the highest samples within the dataset. Referring to the figure \ref@(fig:gender-industry-country) we can see that the Tech industry has the most balanced gender data across all countries in the dataset.
+Let us analyse the tech industry further. The countries where the analyses should be conducted are the United States, Canada and the UK  figure \@ref(fig:num-res-per-country) which shows USA, Canda and UK have the highest samples within the dataset. Referring to the figure \@ref(fig:gender-industry-country) we can see that the Tech industry has the most balanced gender data across all countries in the dataset.
 
 Based on this knowledge let us compare the mean and median salaries of man and women within the industry.
 
@@ -1619,44 +1619,22 @@ In the Accounting, Banking & Finance industry, there is still a significant diff
 # Linear Model
 
 ```{r}
+ask_a_manager_2021_lm <- ask_a_manager_2021_cleaned %>%
+   filter(country == "United States") %>% 
+   filter(industry == "Computing or Tech") 
 
-names(ask_a_manager_2021_cleaned_gender)
-ask_lm <- lm(salary_usd ~ country ,
-             data=ask_a_manager_2021_cleaned_gender, )
+ ask_lm <- lm(salary_usd ~ gender*race + state + years_of_experience_in_field + highest_level_of_education_completed + overall_years_of_professional_experience,
+                           data=ask_a_manager_2021_lm )
 
-ask_lm %>% 
-  get_regression_table()
+reg_table<- ask_lm %>% 
+   get_regression_table()
 
-ask_lm %>% 
-  get_regression_summaries()
+reg_summary <- ask_lm %>% 
+   get_regression_summaries()
 
-ask_a_manager_2021_cleaned_gender_country <- ask_a_manager_2021_cleaned_gender %>% 
-  filter(country == "United States")
-
-ask_lm <- lm(salary_usd ~ gender +
-               race + 
-               overall_years_of_professional_experience + 
-               how_old_are_you + industry + 
-               highest_level_of_education_completed,
-               data=ask_a_manager_2021_cleaned_gender_country )
-
-ask_lm %>% 
-  get_regression_table()
-
-ask_lm %>% 
-  get_regression_summaries()
-
-#Summary Stats of Salary by Gender in the USA
-ask_a_manager_2021_cleaned_gender_country %>% 
-  group_by(gender) %>%
-  drop_na(gender) %>%
-  summarise(MeanSalary=mean(salary_usd, na.rm=TRUE), 
-            MedianSalary=median(salary_usd, na.rm=T), 
-            sdsalary= sd(salary_usd, na.rm=TRUE), 
-            q1salary=quantile(salary_usd, prob=.25, na.rm=TRUE), 
-            q3salary=quantile(salary_usd, prob=.75, na.rm=TRUE),
-            minsalary=min(salary_usd, na.rm=T),
-            maxsalary=max(salary_usd, na.rm=T)) 
+ 
+reg_table
+reg_summary
 
 ```
 
