@@ -412,8 +412,8 @@ for(i in non_standard_industry)
 }
 
  
-ask_a_manager_2021_cleaned%>%
-  filter(industry %in% standard_industry)
+# ask_a_manager_2021_cleaned%>%
+  # filter(industry %in% standard_industry)
 # roughly 2000 people used the other function within the industry section.....
 ```
 
@@ -495,7 +495,7 @@ industry_map[["Engineering or Manufacturing"]] <- c(outliers[grep("mining",outli
 industry_map[["Engineering or Manufacturing"]] <- c(outliers[grep("oil",outliers, perl = TRUE)],
                                        industry_map[["Engineering or Manufacturing"]])
 
-industry_map[["Engineering or Manufacturing"]]
+# industry_map[["Engineering or Manufacturing"]]
 
 outliers_classified <-c(industry_map[["Engineering or Manufacturing"]],
                         outliers_classified)
@@ -527,7 +527,7 @@ industry_map[["Health care"]] <- c(outliers[grep("health",outliers)],
 outliers_classified <-c(industry_map[["Health care"]],
                         outliers_classified)
 
-industry_map[["Health care"]]
+# industry_map[["Health care"]]
 ```
 
 ### Tech
@@ -714,7 +714,7 @@ industry_map[["Animal Care"]] <- c(outliers[grep("pet",outliers)],
 outliers_classified <-c(industry_map[["Animal Care"]],
                         outliers_classified)
 
-industry_map[["Animal Care"]]
+# industry_map[["Animal Care"]]
 ```
 
 ### Food and Bevarage
@@ -837,7 +837,7 @@ outliers_left <- outliers_table%>%
   filter(!industry %in% outliers_classified)%>%
   group_by(industry)%>%
   summarise(total = n())
-outliers_left
+# outliers_left
 
 ```
 
