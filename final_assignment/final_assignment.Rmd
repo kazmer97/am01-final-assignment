@@ -885,7 +885,7 @@ labR_classifications <- unique(occupation_classification$preferredLabel)
 
 ```
 
-##  {.unnumbered}
+## {.unlisted .unnumbered}
 
 ## Clean Gender
 
@@ -914,7 +914,7 @@ ask_a_manager_2021_cleaned <- read_csv(here::here("data","ask_manager_2021_clean
 
 # Dataset Overview Statistics
 
-### Number of responses with each number of Races
+## Number of responses with each number of Races
 
 ```{r race-multiple-resp}
 
@@ -982,7 +982,7 @@ single_race_data <-single_race_data%>%
 
 ```
 
-### Race Distribtion of the Dataset
+## Race Distribtion of the Dataset
 
 ```{r}
 single_race_data%>%
@@ -999,7 +999,7 @@ single_race_data%>%
 
 ```
 
-### Number of Responses by Gender
+## Number of Responses by Gender
 
 ```{r}
 ask_a_manager_2021_cleaned%>%
@@ -1015,7 +1015,7 @@ ask_a_manager_2021_cleaned%>%
   geom_text(aes(label = sprintf("%.2f%%", num_resp_gender/sum(num_resp_gender)*100)), hjust = 0.5)
 ```
 
-### Number of Responses by Country
+## Number of Responses by Country
 
 ```{r num-res-per-country, fig.cap = "Number of Resp/Country"}
 
@@ -1043,7 +1043,7 @@ ask_a_manager_2021_cleaned%>%
 
 We can see that Data from the United States dominates the dataset.
 
-### Race distribution from countries with more then 50 responses
+## Race distribution from countries with more then 50 responses
 
 ```{r race-distribution}
 
@@ -1063,7 +1063,9 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
   geom_col( aes(fill = race))+
   facet_wrap(~country)+
   theme(axis.title.y = element_blank(),
-        plot.title = element_text())+
+        plot.title = element_text(),
+        axis.text.y = element_blank(),
+        legend.position = "bottom")+
   labs(title = "Population Distribution in Countries with more then 50 respondants",
        x = "% of Respondents",
        fill  = "Race Classification")
@@ -1071,7 +1073,7 @@ ggplot(country_race,aes(y = reorder(race, race_prc), x = race_prc))+
 
 The race distribution of the dataset is not representative of the countries population. For example the United States has an African American population of over 13% while in the dataset it below 5%.
 
-### Gender distribution from countries with more then 50 responses
+## Gender distribution from countries with more then 50 responses
 
 ```{r}
 
@@ -1118,15 +1120,15 @@ ggplot(industry_race, aes(y = reorder(industry_cleaned, race_count), x = race_co
   labs(title = "Race distribution within Industries",
        x = "Number of Respondants",
        y = "Industry Classification")+
-  theme_bw()
+  theme_bw()+
+  theme(legend.position = "bottom",
+        axis.title.y = element_blank())
   
 ```
 
 As the Race is not representative of the countries real population this graph only informs us of the distribution of the survey respondents across industries and it is more revealing of the blogs reader base rather then industry statistics.
 
-## By Gender
-
-\#\#\#Summary Statistics
+## By Gender Statistics
 
 ```{r}
 #Table giving counts for each gender category dropping those who left the question blank
@@ -1177,8 +1179,8 @@ ggplot(m_race_gender_summary, aes(y = number, x = reorder(n_race, number)))+
   theme_bw()+
   labs(
     title = "Number of Race's a person identifies with by Age and Gender",
-    y = "Number of Race options ticked by Respondant",
-    x = "Number of Respondants"
+    x = "Number of Race options ticked by Respondant",
+    y = "Number of Respondants"
   )
 
 ```
@@ -1209,7 +1211,7 @@ t.test(mill_men, mill_women)
 
 ```
 
-H0 can be rejected as the t-value is more then 2.
+H0 cannot as p-value is above 0.05. Which means there is no difference in the likelihood of identifying with multiple ethnic bakcgrounds between millenial men and women. 
 
 Now lets test for the chance whether the being a millennial truly increases the likelihood of identifying with multiple races.
 
@@ -1274,7 +1276,8 @@ ggplot(salary_exploration, aes(x = prc, y = reorder(industry_cleaned, prc)))+
   theme_bw()+
   labs(title = "% of Respondants in Each Industry by Country",
        x = "%")+
-  theme(axis.title.y = element_blank())
+  theme(axis.title.y = element_blank(),
+        legend.position = "bottom")
 ```
 
 Overall Computing or Tech is the most popular sector among the 5 chosen countries, followed by Education, Nonprofits...
@@ -1427,7 +1430,7 @@ We created this graph in order to have an overall understanding of the selected 
 
 There are a lot more significant differences in the median salary between the countries the US clearly leading the way with its confidence interval not overlaping with any of the other countries.
 
-According to the graph, USA and Germany are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Germany? In order to proceed, we will conduct hypothesis testing.
+According to the graph, USA and Australia are leading the tech industry in the world in terms of salaries. Is there an actual difference in the mean salaries for tech industry in USA and Australia? In order to proceed, we will conduct hypothesis testing.
 
 H0: There's no difference between the salaries of US and Germany in the Computing and Tech industry. H1: There's a difference between the salaries of US and Germany in the Computing and Tech industry.
 
@@ -1443,7 +1446,9 @@ t.test(salary_usd ~ country_code, tech_usa_aus)
 
 ```
 
-According to the hypothesis testing, we can reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia.
+According to the hypothesis testing, we cannot reject the null hypothesis that there is no difference between the mean salaries for tech employees in USA and Australia.
+
+However there is a clear difference in median salaries between the countries where the USA is a clear leader.
 
 So, since USA dominates the Tech industry, we would like to analyse the factors that affect the tech salary like income and years of of experience at work.
 
@@ -1455,6 +1460,7 @@ Let us analyse the tech industry further. The countries where the analyses shoul
 
 Based on this knowledge let us compare the mean and median salaries of man and women within the industry.
 
+### Mean Salary in tech Man and Woman t-test
 ```{r}
 
 salary_in_tech_by_gender_tech <- ask_a_manager_2021_cleaned %>% 
@@ -1532,10 +1538,11 @@ graph <- ggplot(median_ci_median_tech_gender, aes(colour = gender)) +
        y =" ") +
   theme_bw() +
     geom_text(aes(label =format(round(median,0), big.mark = ","), x = round(median,0), y=gender), size = 3, color="black", hjust = 0.5, vjust = 2, nudge_x = 0.00, nudge_y = 0.00)+
-  facet_wrap(~country)
-
+  facet_wrap(~country)+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 20, hjust = 0.7))+
+  scale_x_continuous(labels = function(median) sprintf("%s$",format(median, big.mark = ",")))
 graph
-
 ```
 
 
